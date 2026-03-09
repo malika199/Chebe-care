@@ -1,0 +1,16 @@
+/* Section produit : photo à gauche, écriture à droite, scroll normal */
+
+.product-detail-section {
+  overflow: visible;
+}
+
+.product-detail-content {
+  overflow: visible;
+}
+
+@media (max-width: 767px) {
+  .product-detail-image-wrapper {
+    position: relative;
+    top: auto;
+  }
+}

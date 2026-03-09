@@ -1,0 +1,597 @@
+.admin-page {
+  min-height: 100vh;
+  background: #f5efea;
+  color: #3a2f2a;
+}
+
+.admin-login-page {
+  background: linear-gradient(145deg, #faf8f6 0%, #f0eae4 50%, #e8dfd6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+.admin-header {
+  background: #fff;
+  border-bottom: 1px solid #e8dad1;
+  padding: 1rem 1.5rem;
+}
+
+.admin-header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.admin-tab {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: #3a2f2a99;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+
+.admin-tab:hover {
+  color: #3a2f2a;
+  background: #f5efea;
+}
+
+.admin-tab.active {
+  color: #c6a75e;
+  background: rgba(198, 167, 94, 0.12);
+}
+
+.admin-header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.admin-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-subtitle {
+  color: #3a2f2a99;
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+.admin-login-card {
+  max-width: 400px;
+  width: 100%;
+  padding: 2.5rem;
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 40px rgba(58, 47, 42, 0.12), 0 2px 12px rgba(58, 47, 42, 0.06);
+  border: 1px solid rgba(232, 218, 209, 0.8);
+  transition: box-shadow 0.2s ease;
+}
+
+.admin-login-card-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.admin-login-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: linear-gradient(135deg, rgba(198, 167, 94, 0.15) 0%, rgba(198, 167, 94, 0.08) 100%);
+  border-radius: 1rem;
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-login-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #3a2f2a;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-login-subtitle {
+  font-size: 0.95rem;
+  color: #3a2f2a99;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3a2f2acc;
+  margin-bottom: 0.35rem;
+}
+
+.admin-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e8dad1;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background: #fff;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: #c6a75e;
+  box-shadow: 0 0 0 2px rgba(198, 167, 94, 0.2);
+}
+
+.admin-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.admin-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.admin-hint {
+  font-size: 0.8rem;
+  color: #3a2f2a99;
+  margin: 1rem 0 0;
+}
+
+.admin-hint-box {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: #faf8f6;
+  border-radius: 0.5rem;
+  border: 1px solid #e8dad1;
+  font-size: 0.8rem;
+  color: #3a2f2a99;
+}
+
+.admin-login-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e8dad1;
+}
+
+.admin-login-links .admin-link,
+.admin-login-links .admin-link-button {
+  margin-top: 0;
+}
+
+.admin-btn-login {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.admin-btn-block {
+  width: 100%;
+}
+
+.admin-input-login {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+.admin-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #c6a75e;
+  font-weight: 500;
+}
+
+.admin-link:hover {
+  text-decoration: underline;
+}
+
+.admin-link-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  margin-top: 0.5rem;
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(58, 47, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.admin-modal {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(42, 36, 32, 0.2);
+  border: 1px solid #e8dad1;
+}
+
+.admin-modal-title {
+  margin: 0 0 1.25rem;
+  font-size: 1.25rem;
+  color: #3a2f2a;
+}
+
+.admin-modal .admin-login-form {
+  margin-bottom: 1rem;
+}
+
+.admin-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.admin-recovery-block {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e8dad1;
+}
+
+.admin-recovery-code {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+  word-break: break-all;
+}
+
+.admin-recovery-code code {
+  background: #f5efea;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  text-decoration: none;
+}
+
+.admin-btn-primary {
+  background: #c6a75e;
+  color: #fff;
+}
+
+.admin-btn-primary:hover {
+  background: #b8984e;
+}
+
+.admin-btn-ghost {
+  background: transparent;
+  color: #3a2f2a;
+  border: 1px solid #e8dad1;
+}
+
+.admin-btn-ghost:hover {
+  background: #f5efea;
+}
+
+.admin-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.admin-btn-danger:hover {
+  background: #b91c1c;
+}
+
+.admin-btn-small {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.admin-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.admin-message {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.admin-message-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-message-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-form {
+  background: #fff;
+  border: 1px solid #e8dad1;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 10px rgba(42, 36, 32, 0.06);
+}
+
+.admin-form h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.15rem;
+}
+
+.admin-form label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.admin-image-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.admin-image-field .admin-input {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-btn-browse {
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.admin-form-actions {
+  margin-top: 1.25rem;
+}
+
+.admin-products {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-product-card {
+  display: flex;
+  gap: 1.25rem;
+  background: #fff;
+  border: 1px solid #e8dad1;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 10px rgba(42, 36, 32, 0.06);
+  align-items: flex-start;
+}
+
+.admin-product-preview {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f5efea;
+}
+
+.admin-product-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-product-name {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-product-category {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #3a2f2a99;
+}
+
+.admin-product-price {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.admin-product-old {
+  font-weight: 400;
+  color: #3a2f2a99;
+  font-size: 0.9rem;
+}
+
+.admin-product-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-edit-form-full {
+  flex-direction: column;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-edit-form-product {
+  gap: 0;
+}
+
+.admin-form-section {
+  background: #fff;
+  border: 1px solid #e8dad1;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.25rem 1rem;
+  margin-bottom: 1rem;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.admin-form-section:last-of-type {
+  margin-bottom: 0.5rem;
+}
+
+.admin-form-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c6a75e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e8dad1;
+}
+
+.admin-edit-form-product .admin-form-section label {
+  margin-bottom: 1rem;
+}
+
+.admin-edit-form-product .admin-form-section label:last-child {
+  margin-bottom: 0;
+}
+
+.admin-edit-form-product .admin-form-section .admin-input,
+.admin-edit-form-product .admin-form-section .admin-textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-form-row-pricing {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  align-items: end;
+  margin-top: 0;
+}
+
+.admin-form-row-pricing label {
+  min-width: 0;
+}
+
+.admin-edit-actions-footer {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e8dad1;
+}
+
+.admin-edit-form-result {
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-edit-form-result .admin-input,
+.admin-edit-form-result .admin-textarea {
+  min-width: 200px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-edit-form-full .admin-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+}
+
+.admin-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-edit-form label span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3a2f2a99;
+}
+
+.admin-edit-form-product .admin-form-section label span {
+  font-size: 0.8rem;
+  color: #3a2f2acc;
+}
+
+.admin-input-small {
+  width: 90px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.admin-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-loading {
+  text-align: center;
+  color: #3a2f2a99;
+  padding: 2rem;
+}

@@ -1,0 +1,14 @@
+{
+  "name": "vente-en-ligne",
+  "version": "1.0.0",
+  "description": "Site e-commerce — client (utilisateurs) + admin (gestion) + API",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:client",
+    "dev:client": "npm run dev --prefix client",
+    "dev:admin": "npm run dev --prefix admin",
+    "dev:server": "npm run start --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build:admin": "npm run build --prefix admin"
+  }
+}
