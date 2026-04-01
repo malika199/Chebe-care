@@ -115,10 +115,11 @@ export async function deleteProduct(id, token) {
   return res.json()
 }
 
-export async function uploadImage(file, token) {
+export async function uploadImage(file, token, { folder = 'products' } = {}) {
   const formData = new FormData()
   formData.append('image', file)
-  const res = await fetch(`${API_BASE}/api/upload`, {
+  const query = folder === 'temoignages' ? '?folder=temoignages' : ''
+  const res = await fetch(`${API_BASE}/api/upload${query}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData

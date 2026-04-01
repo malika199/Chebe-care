@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "image": "/images/temoignage-1.png",
+    "image": "/images/temoignages/temoignage-1.png",
     "hairType": "Poils & barbe",
     "duration": "3 mois",
     "months": 3,
@@ -11,7 +11,7 @@
   },
   {
     "id": 2,
-    "image": "/images/temoignage-2.png",
+    "image": "/images/temoignages/temoignage-2.png",
     "hairType": "Crépus",
     "duration": "3 mois",
     "months": 3,
@@ -20,7 +20,7 @@
   },
   {
     "id": 3,
-    "image": "/images/temoignage-3.png",
+    "image": "/images/temoignages/temoignage-3.png",
     "hairType": "Bouclés",
     "duration": "4 mois",
     "months": 4,
@@ -29,7 +29,7 @@
   },
   {
     "id": 4,
-    "image": "/images/temoignage-4.png",
+    "image": "/images/temoignages/temoignage-4.png",
     "hairType": "Bouclés",
     "duration": "4 mois",
     "months": 4,
@@ -38,7 +38,7 @@
   },
   {
     "id": 5,
-    "image": "/images/cheveux-lisses.png",
+    "image": "/images/temoignages/cheveux-lisses.png",
     "hairType": "Lisses",
     "duration": "2 mois",
     "months": 2,
@@ -47,7 +47,7 @@
   },
   {
     "id": 6,
-    "image": "/images/resultat-cheveux.png",
+    "image": "/images/temoignages/resultat-cheveux.png",
     "hairType": "Lisses",
     "duration": "3 mois",
     "months": 3,

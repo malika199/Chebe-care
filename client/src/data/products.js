@@ -1,10 +1,4 @@
-import huileBarbeImg from '../assets/images/huile-barbe.png'
-import huileCheveuxImg from '../assets/images/huile-cheveux.png'
-import poudreChebeImg from '../assets/images/poudre-chebe.png'
-import cremeCheveuxImg from '../assets/images/creme-cheveux.png'
-import cremeBarbeImg from '../assets/images/creme-barbe.png'
-import dermaRollerImg from '../assets/images/derma_roller.jpeg'
-
+/** Chemins servis par l’API : /images/products/… (voir server/public/images/products). */
 export const products = [
   {
     id: 1,
@@ -14,7 +8,7 @@ export const products = [
     price: 10,
     originalPrice: null,
     discount: 0,
-    image: huileBarbeImg,
+    image: '/images/products/huile-barbe.png',
     category: 'Barbe',
     features: ['Hydrate la peau', 'Réduit les démangeaisons', 'Apporte brillance', 'Texture légère non grasse']
   },
@@ -26,7 +20,7 @@ export const products = [
     price: 12,
     originalPrice: null,
     discount: 0,
-    image: huileCheveuxImg,
+    image: '/images/products/huile-cheveux.png',
     category: 'Cheveux',
     features: ['Nourrit en profondeur', 'Limite la casse', 'Favorise la rétention de longueur', 'Tous types de cheveux'],
     bienfaits: [
@@ -51,7 +45,7 @@ export const products = [
     price: 14,
     originalPrice: null,
     discount: 0,
-    image: poudreChebeImg,
+    image: '/images/products/poudre-chebe.png',
     category: 'Cheveux',
     features: ['Chebé pur du Tchad', 'Nourrit en profondeur', 'Démêle et assouplit', 'Favorise la pousse']
   },
@@ -62,7 +56,7 @@ export const products = [
     price: 16.5,
     originalPrice: null,
     discount: 0,
-    image: cremeCheveuxImg,
+    image: '/images/products/creme-cheveux.png',
     category: 'Cheveux',
     features: ['Hydratation intense', 'Anti-frisottis', 'Facilite le coiffage', 'Protection longue durée']
   },
@@ -73,7 +67,7 @@ export const products = [
     price: 12,
     originalPrice: null,
     discount: 0,
-    image: cremeBarbeImg,
+    image: '/images/products/creme-barbe.png',
     category: 'Barbe',
     features: ['Discipline les poils', 'Hydrate intensément', 'Rend la barbe plus souple', 'Finition naturelle']
   },
@@ -85,7 +79,7 @@ export const products = [
     price: 12.5,
     originalPrice: null,
     discount: 0,
-    image: '/encens-tchadien-doukan.png',
+    image: '/images/products/encens-tchadien-doukan.png',
     category: 'Encens',
     features: [
       'Purifie et parfume durablement l\'espace',
@@ -101,7 +95,7 @@ export const products = [
     price: 3.99,
     originalPrice: null,
     discount: 0,
-    image: dermaRollerImg,
+    image: '/images/products/derma_roller.jpeg',
     category: 'Barbe',
     features: ['Stimule la pousse de la barbe', 'Prépare la peau à l\'absorption des soins', 'Micro-aiguilles en métal', 'Poignée ergonomique']
   }

@@ -4,7 +4,7 @@ import './AdminPage.css'
 
 const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'
 
-// Images /images/xxx = servies par l’API (proxy admin). Autres chemins = site client.
+// Images /images/products/… et /images/temoignages/… = servies par l’API (proxy admin). Autres chemins = site client.
 function getImageSrc(path) {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
@@ -27,7 +27,7 @@ const AdminPage = () => {
     price: '',
     originalPrice: '',
     discount: '0',
-    image: '/images/placeholder.png',
+    image: '/images/products/placeholder.png',
     category: 'Cheveux',
     features: '',
     usage: '',
@@ -40,7 +40,7 @@ const AdminPage = () => {
   const [showAddResult, setShowAddResult] = useState(false)
   const [editingResultId, setEditingResultId] = useState(null)
   const [newResult, setNewResult] = useState({
-    image: '/images/placeholder.png',
+    image: '/images/temoignages/placeholder.png',
     hairType: 'Cheveux',
     months: 3,
     result: '',
@@ -192,7 +192,7 @@ const AdminPage = () => {
         price: Number(data.price) || 0,
         originalPrice: data.originalPrice === '' ? null : Number(data.originalPrice),
         discount: Number(data.discount) || 0,
-        image: data.image || '/images/placeholder.png',
+        image: data.image || '/images/products/placeholder.png',
         category: data.category,
         features,
         usage: data.usage || null,
@@ -224,7 +224,7 @@ const AdminPage = () => {
           price: Number(newProduct.price) || 0,
           originalPrice: newProduct.originalPrice ? Number(newProduct.originalPrice) : null,
           discount: Number(newProduct.discount) || 0,
-          image: newProduct.image || '/images/placeholder.png',
+          image: newProduct.image || '/images/products/placeholder.png',
           category: newProduct.category,
           features,
           usage: newProduct.usage || null,
@@ -235,7 +235,7 @@ const AdminPage = () => {
       )
       setProducts((prev) => [...prev, created])
       setShowAddForm(false)
-      setNewProduct({ name: '', description: '', price: '', originalPrice: '', discount: '0', image: '/images/placeholder.png', category: 'Cheveux', features: '', usage: '', bienfaits: '', pourQui: '' })
+      setNewProduct({ name: '', description: '', price: '', originalPrice: '', discount: '0', image: '/images/products/placeholder.png', category: 'Cheveux', features: '', usage: '', bienfaits: '', pourQui: '' })
       setMessage({ type: 'success', text: 'Produit ajouté.' })
     } catch (e) {
       setMessage({ type: 'error', text: e.message })
@@ -260,7 +260,7 @@ const AdminPage = () => {
     try {
       const monthsVal = Number(newResult.months) || 3
       const created = await createResult({
-        image: newResult.image || '/images/placeholder.png',
+        image: newResult.image || '/images/temoignages/placeholder.png',
         hairType: newResult.hairType,
         duration: `${monthsVal} mois`,
         months: monthsVal,
@@ -270,7 +270,7 @@ const AdminPage = () => {
       }, token)
       setResultsList((prev) => [...prev, created])
       setShowAddResult(false)
-      setNewResult({ image: '/images/placeholder.png', hairType: 'Cheveux', months: 3, result: '', detail: '', objectPosition: 'center' })
+      setNewResult({ image: '/images/temoignages/placeholder.png', hairType: 'Cheveux', months: 3, result: '', detail: '', objectPosition: 'center' })
       setMessage({ type: 'success', text: 'Résultat ajouté.' })
     } catch (e) {
       setMessage({ type: 'error', text: e.message })
@@ -465,7 +465,7 @@ const AdminPage = () => {
                         const file = e.target.files?.[0]
                         if (!file || !token) return
                         try {
-                          const pathUrl = await uploadImage(file, token)
+                          const pathUrl = await uploadImage(file, token, { folder: 'temoignages' })
                           setNewResult((r) => ({ ...r, image: pathUrl }))
                           setMessage({ type: 'success', text: 'Image envoyée.' })
                         } catch (err) { setMessage({ type: 'error', text: err.message }) }

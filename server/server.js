@@ -15,6 +15,8 @@ const RESULTS_FILE = path.join(DATA_DIR, 'results.json')
 const ADMIN_FILE = path.join(DATA_DIR, 'admin.json')
 const PUBLIC_DIR = path.join(__dirname, 'public')
 const IMAGES_DIR = path.join(PUBLIC_DIR, 'images')
+const IMAGES_PRODUCTS_DIR = path.join(IMAGES_DIR, 'products')
+const IMAGES_TEMOIGNAGES_DIR = path.join(IMAGES_DIR, 'temoignages')
 const PORT = process.env.PORT || 3001
 const ADMIN_PASSWORD_ENV = process.env.ADMIN_PASSWORD || 'admin123'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || ''
@@ -31,9 +33,20 @@ if (!fs.existsSync(DATA_DIR)) {
 if (!fs.existsSync(IMAGES_DIR)) {
   fs.mkdirSync(IMAGES_DIR, { recursive: true })
 }
+if (!fs.existsSync(IMAGES_PRODUCTS_DIR)) {
+  fs.mkdirSync(IMAGES_PRODUCTS_DIR, { recursive: true })
+}
+if (!fs.existsSync(IMAGES_TEMOIGNAGES_DIR)) {
+  fs.mkdirSync(IMAGES_TEMOIGNAGES_DIR, { recursive: true })
+}
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, IMAGES_DIR),
+  destination: (req, file, cb) => {
+    const sub = req.query.folder === 'temoignages' ? 'temoignages' : 'products'
+    const dir = path.join(IMAGES_DIR, sub)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    cb(null, dir)
+  },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname) || '.jpg'
     const base = path.basename(file.originalname, ext).replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '')
@@ -223,7 +236,8 @@ app.get('/api/products/:id', (req, res) => {
 app.post('/api/upload', adminAuth, upload.single('image'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier envoyé' })
-    const pathUrl = '/images/' + req.file.filename
+    const sub = req.query.folder === 'temoignages' ? 'temoignages' : 'products'
+    const pathUrl = `/images/${sub}/` + req.file.filename
     res.json({ path: pathUrl })
   } catch (e) {
     res.status(500).json({ error: 'Erreur upload' })
@@ -365,7 +379,7 @@ app.post('/api/products', adminAuth, (req, res) => {
       price,
       originalPrice,
       discount: computedDiscount > 0 ? computedDiscount : (Number(body.discount) || 0),
-      image: body.image || '/images/placeholder.png',
+      image: body.image || '/images/products/placeholder.png',
       category: body.category || 'Cheveux',
       features: Array.isArray(body.features) ? body.features : [],
       tagline: body.tagline || null,
@@ -409,7 +423,7 @@ app.post('/api/results', adminAuth, (req, res) => {
     const body = req.body || {}
     const newResult = {
       id: nextResultId(results),
-      image: body.image || '/images/placeholder.png',
+      image: body.image || '/images/temoignages/placeholder.png',
       hairType: body.hairType || 'Cheveux',
       duration: body.duration || '3 mois',
       months: Number(body.months) || 3,

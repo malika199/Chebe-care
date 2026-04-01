@@ -1,7 +1,7 @@
 // En dev avec proxy Vite : '' pour utiliser /api via le proxy. Sinon mettre VITE_API_URL (ex. http://localhost:3001)
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
-/** URL à utiliser pour l’image d’un produit (chemins /images/xxx servis par l’API). */
+/** URL d’image produit ou résultat (chemins /images/products/… et /images/temoignages/… servis par l’API). */
 export function getProductImageUrl(image) {
   if (!image) return ''
   if (typeof image !== 'string') return image

@@ -1,10 +1,11 @@
 import React from 'react'
-import gallery1 from '../assets/images/temoignage-1.png'
-import gallery2 from '../assets/images/temoignage-2.png'
-import gallery3 from '../assets/images/temoignage-3.png'
-import gallery4 from '../assets/images/temoignage-4.png'
 
-const GALLERY_IMAGES = [gallery1, gallery2, gallery3, gallery4]
+const GALLERY_IMAGES = [
+  '/images/temoignages/temoignage-1.png',
+  '/images/temoignages/temoignage-2.png',
+  '/images/temoignages/temoignage-3.png',
+  '/images/temoignages/temoignage-4.png'
+]
 
 const GallerySection = () => {
   return (

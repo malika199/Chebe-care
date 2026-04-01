@@ -2,7 +2,7 @@
 # Exécutez ce script dans PowerShell : .\copy-gallery.ps1
 
 $cursorAssets = "$env:USERPROFILE\.cursor\projects\c-Users-malik-Downloads-Projets-vente-en-ligne\assets"
-$dest = Join-Path $PSScriptRoot "public\gallery"
+$dest = Join-Path $PSScriptRoot "server\public\images\temoignages"
 
 $sources = @(
   "c__Users_malik_AppData_Roaming_Cursor_User_workspaceStorage_808940159d709207aac41f1babf70705_images_WhatsApp_Image_2026-02-19_at_23.54.45__1_-4c284163-f29b-4421-be62-0e886892f596.png",
@@ -23,4 +23,4 @@ foreach ($f in $sources) {
     Write-Host "Manquant: $f"
   }
 }
-if ($i -eq 5) { Write-Host "Les 4 images ont ete copiees dans public\gallery\" }
+if ($i -eq 5) { Write-Host "Les 4 images ont ete copiees dans server\public\images\temoignages\" }

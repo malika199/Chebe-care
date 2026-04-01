@@ -7,7 +7,7 @@
     "price": 10,
     "originalPrice": null,
     "discount": 0,
-    "image": "/images/huile-barbe.png",
+    "image": "/images/products/huile-barbe.png",
     "category": "Barbe",
     "features": [
       "Hydrate la peau",
@@ -24,7 +24,7 @@
     "price": 12,
     "originalPrice": null,
     "discount": 0,
-    "image": "/images/huile-cheveux.png",
+    "image": "/images/products/huile-cheveux.png",
     "category": "Cheveux",
     "features": [
       "Nourrit en profondeur",
@@ -69,7 +69,7 @@
     "price": 14,
     "originalPrice": null,
     "discount": 0,
-    "image": "/images/poudre-chebe.png",
+    "image": "/images/products/poudre-chebe.png",
     "category": "Cheveux",
     "features": [
       "Chebé pur du Tchad",
@@ -85,7 +85,7 @@
     "price": 16.5,
     "originalPrice": null,
     "discount": 0,
-    "image": "/images/creme-cheveux.png",
+    "image": "/images/products/creme-cheveux.png",
     "category": "Cheveux",
     "features": [
       "Hydratation intense",
@@ -101,7 +101,7 @@
     "price": 12,
     "originalPrice": null,
     "discount": 0,
-    "image": "/images/creme-barbe.png",
+    "image": "/images/products/creme-barbe.png",
     "category": "Barbe",
     "features": [
       "Discipline les poils",
@@ -118,7 +118,7 @@
     "price": 12.5,
     "originalPrice": null,
     "discount": 0,
-    "image": "/encens-tchadien-doukan.png",
+    "image": "/images/products/encens-tchadien-doukan.png",
     "category": "Encens",
     "features": [
       "Purifie et parfume durablement l'espace",
@@ -134,7 +134,7 @@
     "price": 3.99,
     "originalPrice": null,
     "discount": 0,
-    "image": "/images/derma_roller.jpeg",
+    "image": "/images/products/derma_roller.jpeg",
     "category": "Barbe",
     "features": [
       "Stimule la pousse de la barbe",
@@ -151,7 +151,7 @@
     "price": 10,
     "originalPrice": 13,
     "discount": 0,
-    "image": "/images/aceembelif-woman-5803008_1920-1772547178558.jpg",
+    "image": "/images/products/aceembelif-woman-5803008_1920-1772547178558.jpg",
     "category": "Barbe",
     "features": [
       "xxxxxxxxxxxxxxxxxxxxxxx.",

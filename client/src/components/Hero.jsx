@@ -1,6 +1,6 @@
 import React from 'react'
 
-const HERO_IMAGE = '/photo_background.jpg'
+const HERO_IMAGE = '/images/products/photo_background.jpg'
 
 const Hero = () => {
   return (
