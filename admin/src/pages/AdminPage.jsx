@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, changePassword, forgotPassword, getRecoveryCode } from '../api'
+import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, forgotPassword, requestPasswordReset } from '../api'
 import './AdminPage.css'
 
 const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'
@@ -48,16 +48,12 @@ const AdminPage = () => {
     objectPosition: 'center'
   })
   const [showForgotPassword, setShowForgotPassword] = useState(false)
-  const [forgotRecoveryCode, setForgotRecoveryCode] = useState('')
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotResetCode, setForgotResetCode] = useState('')
+  const [forgotStep, setForgotStep] = useState('request')
   const [forgotNewPassword, setForgotNewPassword] = useState('')
   const [forgotConfirm, setForgotConfirm] = useState('')
   const [forgotError, setForgotError] = useState('')
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
-  const [changeCurrentPassword, setChangeCurrentPassword] = useState('')
-  const [changeNewPassword, setChangeNewPassword] = useState('')
-  const [changeConfirm, setChangeConfirm] = useState('')
-  const [changeError, setChangeError] = useState('')
-  const [recoveryCodeDisplay, setRecoveryCodeDisplay] = useState(null)
 
   useEffect(() => {
     if (token) {
@@ -109,7 +105,33 @@ const AdminPage = () => {
     window.sessionStorage.removeItem('adminToken')
     setToken(null)
     setPassword('')
-    setShowChangePasswordModal(false)
+  }
+
+  const resetForgotForm = () => {
+    setForgotStep('request')
+    setForgotEmail('')
+    setForgotResetCode('')
+    setForgotNewPassword('')
+    setForgotConfirm('')
+    setForgotError('')
+  }
+
+  const handleRequestResetCode = async (e) => {
+    e.preventDefault()
+    setForgotError('')
+    const email = forgotEmail.trim()
+    if (!email) {
+      setForgotError('Veuillez saisir votre email.')
+      return
+    }
+    try {
+      await requestPasswordReset(email)
+      setForgotEmail(email)
+      setForgotStep('confirm')
+      setMessage({ type: 'success', text: 'Un code de réinitialisation a été envoyé par email.' })
+    } catch (err) {
+      setForgotError(err.message || 'Erreur')
+    }
   }
 
   const handleForgotPassword = async (e) => {
@@ -124,60 +146,15 @@ const AdminPage = () => {
       return
     }
     try {
-      await forgotPassword(forgotRecoveryCode.trim(), forgotNewPassword)
+      await forgotPassword(forgotEmail.trim(), forgotResetCode.trim(), forgotNewPassword)
       setShowForgotPassword(false)
-      setForgotRecoveryCode('')
-      setForgotNewPassword('')
-      setForgotConfirm('')
+      resetForgotForm()
       setPassword('')
       setLoginError('')
       setMessage({ type: 'success', text: 'Mot de passe réinitialisé. Connectez-vous avec le nouveau mot de passe.' })
     } catch (err) {
       setForgotError(err.message || 'Erreur')
     }
-  }
-
-  const handleChangePassword = async (e) => {
-    e.preventDefault()
-    setChangeError('')
-    if (changeNewPassword !== changeConfirm) {
-      setChangeError('Les deux mots de passe ne correspondent pas.')
-      return
-    }
-    if (changeNewPassword.length < 4) {
-      setChangeError('Le nouveau mot de passe doit faire au moins 4 caractères.')
-      return
-    }
-    try {
-      const newToken = await changePassword(changeCurrentPassword, changeNewPassword, token)
-      window.sessionStorage.setItem('adminToken', newToken)
-      setToken(newToken)
-      setShowChangePasswordModal(false)
-      setChangeCurrentPassword('')
-      setChangeNewPassword('')
-      setChangeConfirm('')
-      setMessage({ type: 'success', text: 'Mot de passe modifié.' })
-    } catch (err) {
-      setChangeError(err.message || 'Erreur')
-    }
-  }
-
-  const handleShowRecoveryCode = async () => {
-    try {
-      const data = await getRecoveryCode(token)
-      setRecoveryCodeDisplay(data.recoveryCode)
-    } catch {
-      setRecoveryCodeDisplay('Erreur')
-    }
-  }
-
-  const closeChangePasswordModal = () => {
-    setShowChangePasswordModal(false)
-    setChangeCurrentPassword('')
-    setChangeNewPassword('')
-    setChangeConfirm('')
-    setChangeError('')
-    setRecoveryCodeDisplay(null)
   }
 
   const parseBienfaits = (str) => {
@@ -332,51 +309,87 @@ const AdminPage = () => {
             <span className="admin-login-icon" aria-hidden>🔐</span>
             <h1 className="admin-login-title">Administration</h1>
             <p className="admin-login-subtitle">
-              {showForgotPassword ? 'Réinitialiser le mot de passe avec votre code de récupération.' : 'Connectez-vous pour modifier les produits et les prix.'}
+              {showForgotPassword ? 'Réinitialiser le mot de passe avec un code reçu par email.' : 'Connectez-vous pour modifier les produits et les prix.'}
             </p>
           </div>
           {showForgotPassword ? (
-            <form onSubmit={handleForgotPassword} className="admin-login-form">
-              <label>
-                <span className="admin-label">Code de récupération</span>
-                <input
-                  type="text"
-                  value={forgotRecoveryCode}
-                  onChange={(e) => setForgotRecoveryCode(e.target.value)}
-                  className="admin-input"
-                  placeholder="Collez le code reçu ou sauvegardé"
-                  autoFocus
-                  required
-                />
-              </label>
-              <label>
-                <span className="admin-label">Nouveau mot de passe</span>
-                <input
-                  type="password"
-                  value={forgotNewPassword}
-                  onChange={(e) => setForgotNewPassword(e.target.value)}
-                  className="admin-input"
-                  placeholder="Au moins 4 caractères"
-                  required
-                />
-              </label>
-              <label>
-                <span className="admin-label">Confirmer le mot de passe</span>
-                <input
-                  type="password"
-                  value={forgotConfirm}
-                  onChange={(e) => setForgotConfirm(e.target.value)}
-                  className="admin-input"
-                  placeholder="Répétez le mot de passe"
-                  required
-                />
-              </label>
-              {forgotError && <p className="admin-error">{forgotError}</p>}
-              <button type="submit" className="admin-btn admin-btn-primary admin-btn-login">Réinitialiser le mot de passe</button>
-              <button type="button" className="admin-btn admin-btn-ghost admin-btn-block" onClick={() => { setShowForgotPassword(false); setForgotError(''); setForgotRecoveryCode(''); setForgotNewPassword(''); setForgotConfirm(''); }}>
-                ← Retour à la connexion
-              </button>
-            </form>
+            forgotStep === 'request' ? (
+              <form onSubmit={handleRequestResetCode} className="admin-login-form">
+                <label>
+                  <span className="admin-label">Email admin</span>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="admin-input"
+                    placeholder="admin@monsite.com"
+                    autoFocus
+                    required
+                  />
+                </label>
+                {forgotError && <p className="admin-error">{forgotError}</p>}
+                <button type="submit" className="admin-btn admin-btn-primary admin-btn-login">Envoyer le code</button>
+                <button type="button" className="admin-btn admin-btn-ghost admin-btn-block" onClick={() => { setShowForgotPassword(false); resetForgotForm() }}>
+                  ← Retour à la connexion
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="admin-login-form">
+                <label>
+                  <span className="admin-label">Email admin</span>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="admin-input"
+                    placeholder="admin@monsite.com"
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="admin-label">Code reçu par email</span>
+                  <input
+                    type="text"
+                    value={forgotResetCode}
+                    onChange={(e) => setForgotResetCode(e.target.value)}
+                    className="admin-input"
+                    placeholder="Ex: 123456"
+                    autoFocus
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="admin-label">Nouveau mot de passe</span>
+                  <input
+                    type="password"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    className="admin-input"
+                    placeholder="Au moins 4 caractères"
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="admin-label">Confirmer le mot de passe</span>
+                  <input
+                    type="password"
+                    value={forgotConfirm}
+                    onChange={(e) => setForgotConfirm(e.target.value)}
+                    className="admin-input"
+                    placeholder="Répétez le mot de passe"
+                    required
+                  />
+                </label>
+                {forgotError && <p className="admin-error">{forgotError}</p>}
+                <button type="submit" className="admin-btn admin-btn-primary admin-btn-login">Réinitialiser le mot de passe</button>
+                <button type="button" className="admin-btn admin-btn-ghost admin-btn-block" onClick={() => setForgotStep('request')}>
+                  ← Changer d'email
+                </button>
+                <button type="button" className="admin-btn admin-btn-ghost admin-btn-block" onClick={() => { setShowForgotPassword(false); resetForgotForm() }}>
+                  ← Retour à la connexion
+                </button>
+              </form>
+            )
           ) : (
             <>
               <form onSubmit={handleLogin} className="admin-login-form">
@@ -419,48 +432,10 @@ const AdminPage = () => {
           </nav>
           <div className="admin-header-actions">
             <a href={CLIENT_URL} className="admin-btn admin-btn-ghost">Voir le site</a>
-            <button type="button" onClick={() => setShowChangePasswordModal(true)} className="admin-btn admin-btn-ghost">Changer le mot de passe</button>
             <button type="button" onClick={handleLogout} className="admin-btn admin-btn-ghost">Déconnexion</button>
           </div>
         </div>
       </header>
-
-      {showChangePasswordModal && (
-        <div className="admin-modal-overlay" onClick={closeChangePasswordModal}>
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <h2 className="admin-modal-title">Changer le mot de passe</h2>
-            <form onSubmit={handleChangePassword} className="admin-login-form">
-              <label>
-                <span className="admin-label">Mot de passe actuel</span>
-                <input type="password" value={changeCurrentPassword} onChange={(e) => setChangeCurrentPassword(e.target.value)} className="admin-input" required />
-              </label>
-              <label>
-                <span className="admin-label">Nouveau mot de passe</span>
-                <input type="password" value={changeNewPassword} onChange={(e) => setChangeNewPassword(e.target.value)} className="admin-input" placeholder="Au moins 4 caractères" required />
-              </label>
-              <label>
-                <span className="admin-label">Confirmer le nouveau mot de passe</span>
-                <input type="password" value={changeConfirm} onChange={(e) => setChangeConfirm(e.target.value)} className="admin-input" required />
-              </label>
-              {changeError && <p className="admin-error">{changeError}</p>}
-              <div className="admin-modal-actions">
-                <button type="submit" className="admin-btn admin-btn-primary">Enregistrer</button>
-                <button type="button" className="admin-btn admin-btn-ghost" onClick={closeChangePasswordModal}>Annuler</button>
-              </div>
-            </form>
-            <div className="admin-recovery-block">
-              <button type="button" className="admin-link admin-link-button" onClick={handleShowRecoveryCode}>
-                Afficher mon code de récupération
-              </button>
-              {recoveryCodeDisplay && (
-                <p className="admin-recovery-code">
-                  <strong>Code à sauvegarder :</strong> <code>{recoveryCodeDisplay}</code>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <main className="admin-main">
         {message.text && (
