@@ -1,17 +1,19 @@
 {
-  "name": "vente-en-ligne-api",
+  "name": "chebe care",
   "version": "1.0.0",
   "description": "API et base de données pour le site vente en ligne",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "kill-port 3001 && node server.js",
     "dev": "node --watch server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
-    "multer": "^1.4.5-lts.1"
+    "kill-port": "^2.0.1",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.4"
   }
 }
