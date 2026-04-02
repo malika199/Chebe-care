@@ -1,7 +1,7 @@
 {
-  "name": "Chebe-care",
+  "name": "chebe-care-server",
   "version": "1.0.0",
-  "description": "API et base de données pour le site vente en ligne",
+  "description": "API et base de données pour le site chebe care by SS",
   "type": "module",
   "main": "server.js",
   "scripts": {
