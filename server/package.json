@@ -5,8 +5,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "kill-port 3001 && node server.js",
-    "dev": "node --watch server.js"
+   "start": "node server.js",
+   "dev": "node --watch server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
