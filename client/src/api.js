@@ -21,6 +21,23 @@ function readMetaApiBase() {
 let resolvedBase = null
 let warnedMissingApi = false
 
+/** Défini après la première réponse API qui expose X-Asset-Base-Url (prioritaire sur getApiBase pour les images). */
+let assetBaseFromApi = ''
+
+function applyAssetBaseFromResponse(res) {
+  try {
+    const h = res.headers.get('x-asset-base-url')
+    const n = normalizeApiBase(h || '')
+    if (!n || n === assetBaseFromApi) return
+    assetBaseFromApi = n
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('chebe-asset-base'))
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function initApiBase() {
   if (resolvedBase !== null) return
 
@@ -64,7 +81,7 @@ export function getProductImageUrl(image) {
   if (!image) return ''
   if (typeof image !== 'string') return image
   if (image.startsWith('http://') || image.startsWith('https://')) return image
-  const base = getApiBase()
+  const base = assetBaseFromApi || getApiBase()
   const path = image.startsWith('/') ? image : `/${image}`
   return base ? `${base}${path}` : path
 }
@@ -72,6 +89,7 @@ export function getProductImageUrl(image) {
 export async function getProducts() {
   const base = getApiBase()
   const res = await fetch(`${base}/api/products`)
+  applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Erreur chargement produits')
   return res.json()
 }
@@ -79,6 +97,7 @@ export async function getProducts() {
 export async function getProduct(id) {
   const base = getApiBase()
   const res = await fetch(`${base}/api/products/${id}`)
+  applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Produit introuvable')
   return res.json()
 }
@@ -86,6 +105,7 @@ export async function getProduct(id) {
 export async function getResults() {
   const base = getApiBase()
   const res = await fetch(`${base}/api/results`)
+  applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Erreur chargement résultats')
   return res.json()
 }

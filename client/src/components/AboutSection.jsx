@@ -1,7 +1,8 @@
 import React from 'react'
-import { getProductImageUrl } from '../api'
+import { useResolvedImageUrl } from '../hooks/useResolvedImageUrl'
 
 const AboutSection = () => {
+  const histoireImg = useResolvedImageUrl('/images/products/photo_histoire.jpg')
   return (
     <section id="about" className="py-20 bg-[#F5EFEA]">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
@@ -10,7 +11,7 @@ const AboutSection = () => {
           <div className="relative order-2 lg:order-1">
             <div className="relative overflow-hidden w-full aspect-[4/5] max-h-[520px] rounded-3xl shadow-xl">
               <img
-                src={getProductImageUrl('/images/products/photo_histoire.jpg')}
+                src={histoireImg}
                 alt="Portrait — Notre histoire, tradition et élégance"
                 className="w-full h-full object-cover object-center"
               />

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useReducer } from 'react'
 import { getProductImageUrl } from '../api'
 
 const GALLERY_PATHS = [
@@ -9,6 +9,11 @@ const GALLERY_PATHS = [
 ]
 
 const GallerySection = () => {
+  const [, rerender] = useReducer((x) => x + 1, 0)
+  useEffect(() => {
+    window.addEventListener('chebe-asset-base', rerender)
+    return () => window.removeEventListener('chebe-asset-base', rerender)
+  }, [])
   return (
     <section id="gallery" className="py-24 lg:py-32 bg-white">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">

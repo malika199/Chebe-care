@@ -446,6 +446,7 @@ app.delete('/api/products/:id', adminAuth, (req, res) => {
 // ——— Résultats (galerie preuve) ———
 app.get('/api/results', (req, res) => {
   try {
+    setAssetBaseHeader(req, res)
     res.json(readResults())
   } catch (e) {
     res.status(500).json({ error: 'Erreur lecture résultats' })

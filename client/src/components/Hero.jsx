@@ -1,9 +1,8 @@
 import React from 'react'
-import { getProductImageUrl } from '../api'
-
-const HERO_IMAGE = getProductImageUrl('/images/products/photo_background.jpg')
+import { useResolvedImageUrl } from '../hooks/useResolvedImageUrl'
 
 const Hero = () => {
+  const heroImage = useResolvedImageUrl('/images/products/photo_background.jpg')
   return (
     <section
       className="hero-section relative min-h-screen flex flex-col justify-center md:justify-center justify-start bg-[#3A2F2A] overflow-hidden"
@@ -21,7 +20,7 @@ const Hero = () => {
       <div
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
-          backgroundImage: `url(${HERO_IMAGE})`,
+          backgroundImage: `url(${heroImage})`,
           backgroundPosition: 'center center',
           backgroundSize: 'cover',
           backgroundAttachment: 'scroll',
