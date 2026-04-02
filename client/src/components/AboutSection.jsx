@@ -1,4 +1,5 @@
 import React from 'react'
+import { getProductImageUrl } from '../api'
 
 const AboutSection = () => {
   return (
@@ -9,7 +10,7 @@ const AboutSection = () => {
           <div className="relative order-2 lg:order-1">
             <div className="relative overflow-hidden w-full aspect-[4/5] max-h-[520px] rounded-3xl shadow-xl">
               <img
-                src="/images/products/photo_histoire.jpg"
+                src={getProductImageUrl('/images/products/photo_histoire.jpg')}
                 alt="Portrait — Notre histoire, tradition et élégance"
                 className="w-full h-full object-cover object-center"
               />

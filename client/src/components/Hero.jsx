@@ -1,6 +1,7 @@
 import React from 'react'
+import { getProductImageUrl } from '../api'
 
-const HERO_IMAGE = '/images/products/photo_background.jpg'
+const HERO_IMAGE = getProductImageUrl('/images/products/photo_background.jpg')
 
 const Hero = () => {
   return (
