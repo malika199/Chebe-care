@@ -1,6 +1,7 @@
-// En dev avec proxy Vite : laisse VITE_API_URL vide → /api et /images passent par le proxy.
-// En production : VITE_API_URL au moment du build (ex. https://api.tondomaine.com), OU balise
-// <meta name="api-base-url" content="https://api.tondomaine.com" /> dans index.html (sans slash final).
+// Résolution de l’URL de l’API (données + images) :
+// 1) VITE_API_URL au build
+// 2) <meta name="api-base-url" content="https://..." /> dans index.html
+// 3) GET /api/public-base (même origine) — utile si seul /api/* est proxifié vers le serveur
 
 function normalizeApiBase(raw) {
   const s = String(raw ?? '').trim()
@@ -10,27 +11,55 @@ function normalizeApiBase(raw) {
 
 const ENV_API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
 
-let warnedMissingApi = false
-
-export function getApiBase() {
-  if (ENV_API_BASE) return ENV_API_BASE
-  if (typeof document !== 'undefined') {
-    const el = document.querySelector('meta[name="api-base-url"]')
-    const fromMeta = normalizeApiBase(el?.getAttribute('content') ?? '')
-    if (fromMeta) return fromMeta
-  }
-  if (import.meta.env.PROD && !warnedMissingApi) {
-    warnedMissingApi = true
-    console.warn(
-      '[CHEBE CARE] Aucune URL d’API : les images et l’API ne chargeront pas. ' +
-        'Définis VITE_API_URL avant `npm run build`, ou ajoute dans <head> : ' +
-        '<meta name="api-base-url" content="https://ton-api.com" />'
-    )
-  }
-  return ''
+function readMetaApiBase() {
+  if (typeof document === 'undefined') return ''
+  const el = document.querySelector('meta[name="api-base-url"]')
+  return normalizeApiBase(el?.getAttribute('content') ?? '')
 }
 
-/** URL d’image produit ou résultat (chemins /images/products/… et /images/temoignages/… servis par l’API). */
+/** null = init pas encore fait ; string (peut être '') après initApiBase() */
+let resolvedBase = null
+let warnedMissingApi = false
+
+export async function initApiBase() {
+  if (resolvedBase !== null) return
+
+  if (ENV_API_BASE) {
+    resolvedBase = ENV_API_BASE
+    return
+  }
+
+  const fromMeta = readMetaApiBase()
+  if (fromMeta) {
+    resolvedBase = fromMeta
+    return
+  }
+
+  try {
+    const r = await fetch('/api/public-base')
+    if (!r.ok) throw new Error('public-base not ok')
+    const j = await r.json()
+    resolvedBase = normalizeApiBase(j.baseUrl ?? '')
+  } catch {
+    resolvedBase = ''
+  }
+
+  if (import.meta.env.PROD && !resolvedBase && !warnedMissingApi) {
+    warnedMissingApi = true
+    console.warn(
+      '[CHEBE CARE] Impossible de résoudre l’URL des images. ' +
+        'Définis VITE_API_URL au build, ou <meta name="api-base-url" />, ' +
+        'ou proxifie aussi /images/* vers l’API, ou PUBLIC_BASE_URL sur le serveur.'
+    )
+  }
+}
+
+export function getApiBase() {
+  if (resolvedBase !== null) return resolvedBase
+  return ENV_API_BASE || readMetaApiBase()
+}
+
+/** URL d’image produit ou résultat (chemins /images/products/… et /images/temoignages/…). */
 export function getProductImageUrl(image) {
   if (!image) return ''
   if (typeof image !== 'string') return image

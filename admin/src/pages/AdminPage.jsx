@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, forgotPassword, requestPasswordReset } from '../api'
+import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, forgotPassword, requestPasswordReset, getProductImageUrl } from '../api'
 import './AdminPage.css'
 
 const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'
 
-// Images /images/products/… et /images/temoignages/… = servies par l’API (proxy admin). Autres chemins = site client.
+// Chemins /images/… = servis par l’API (getProductImageUrl préfixe l’URL en prod). Autres chemins relatifs = site client.
 function getImageSrc(path) {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
-  if (path.startsWith('/images/')) return path
+  if (path.startsWith('/images/')) return getProductImageUrl(path)
   return CLIENT_URL + (path.startsWith('/') ? path : '/' + path)
 }
 

@@ -25,6 +25,28 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 587)
 const SMTP_USER = process.env.SMTP_USER || ''
 const SMTP_PASS = process.env.SMTP_PASS || ''
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'no-reply@localhost'
+/** URL publique forcée pour les assets (images) si le proxy envoie un Host incorrect. Sans slash final. */
+const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '')
+  .trim()
+  .replace(/\/+$/, '')
+
+/** Base publique pour préfixer /images/… (identique à /api/public-base). */
+function getAssetBaseUrlFromRequest(req) {
+  if (PUBLIC_BASE_URL) return PUBLIC_BASE_URL
+  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https')
+    .split(',')[0]
+    .trim()
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .split(',')[0]
+    .trim()
+  if (!host) return ''
+  return `${proto}://${host}`.replace(/\/+$/, '')
+}
+
+function setAssetBaseHeader(req, res) {
+  const b = getAssetBaseUrlFromRequest(req)
+  if (b) res.setHeader('X-Asset-Base-Url', b)
+}
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true })
@@ -57,9 +79,20 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }) // 5 Mo
 
 const app = express()
-app.use(cors())
+app.set('trust proxy', 1)
+app.use(cors({ exposedHeaders: ['X-Asset-Base-Url'] }))
 app.use(express.json())
 app.use('/images', express.static(IMAGES_DIR))
+
+/** Permet au front de préfixer les URLs /images/… quand seul /api est proxifié (même origine). */
+app.get('/api/public-base', (req, res) => {
+  try {
+    const baseUrl = getAssetBaseUrlFromRequest(req)
+    res.json({ baseUrl })
+  } catch (e) {
+    res.json({ baseUrl: '' })
+  }
+})
 
 function readProducts() {
   const raw = fs.readFileSync(DATA_FILE, 'utf-8')
@@ -213,6 +246,7 @@ function adminAuth(req, res, next) {
 // ——— Routes publiques ———
 app.get('/api/products', (req, res) => {
   try {
+    setAssetBaseHeader(req, res)
     const products = readProducts().map(enrichProductWithDiscount)
     res.json(products)
   } catch (e) {
@@ -222,6 +256,7 @@ app.get('/api/products', (req, res) => {
 
 app.get('/api/products/:id', (req, res) => {
   try {
+    setAssetBaseHeader(req, res)
     const products = readProducts()
     const id = Number(req.params.id)
     const product = products.find((p) => p.id === id)
