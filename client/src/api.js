@@ -4,9 +4,18 @@
 // 3) GET /api/public-base (même origine) — utile si seul /api/* est proxifié vers le serveur
 
 function normalizeApiBase(raw) {
-  const s = String(raw ?? '').trim()
+  let s = String(raw ?? '').trim().replace(/\/+$/, '')
   if (!s) return ''
-  return s.replace(/\/+$/, '')
+  // Erreurs fréquentes : …/api, …/images, …/images/products — la base doit être la racine du serveur uniquement.
+  if (/\/api$/i.test(s)) s = s.replace(/\/api$/i, '').replace(/\/+$/, '')
+  s = s.replace(/\/images(\/(products|temoignages))?$/i, '').replace(/\/+$/, '')
+  return s
+}
+
+/** Chemin relatif attendu : /images/products/fichier.ext ou /images/temoignages/fichier.ext */
+function isValidRelativeImagePath(p) {
+  const x = p.startsWith('/') ? p : `/${p}`
+  return /^\/images\/(products|temoignages)\/[^/]+/.test(x)
 }
 
 const ENV_API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
@@ -80,9 +89,18 @@ export function getApiBase() {
 export function getProductImageUrl(image) {
   if (!image) return ''
   if (typeof image !== 'string') return image
-  if (image.startsWith('http://') || image.startsWith('https://')) return image
-  const base = assetBaseFromApi || getApiBase()
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    try {
+      const u = new URL(image)
+      if (!/^\/images\/(products|temoignages)\/[^/]+/.test(u.pathname)) return ''
+      return image
+    } catch {
+      return ''
+    }
+  }
   const path = image.startsWith('/') ? image : `/${image}`
+  if (!isValidRelativeImagePath(path)) return ''
+  const base = assetBaseFromApi || getApiBase()
   return base ? `${base}${path}` : path
 }
 

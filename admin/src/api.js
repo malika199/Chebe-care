@@ -1,7 +1,14 @@
 function normalizeApiBase(raw) {
-  const s = String(raw ?? '').trim()
+  let s = String(raw ?? '').trim().replace(/\/+$/, '')
   if (!s) return ''
-  return s.replace(/\/+$/, '')
+  if (/\/api$/i.test(s)) s = s.replace(/\/api$/i, '').replace(/\/+$/, '')
+  s = s.replace(/\/images(\/(products|temoignages))?$/i, '').replace(/\/+$/, '')
+  return s
+}
+
+function isValidRelativeImagePath(p) {
+  const x = p.startsWith('/') ? p : `/${p}`
+  return /^\/images\/(products|temoignages)\/[^/]+/.test(x)
 }
 
 const ENV_API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
@@ -14,6 +21,22 @@ function readMetaApiBase() {
 
 let resolvedBase = null
 let warnedMissingApi = false
+
+let assetBaseFromApi = ''
+
+function applyAssetBaseFromResponse(res) {
+  try {
+    const h = res.headers.get('x-asset-base-url')
+    const n = normalizeApiBase(h || '')
+    if (!n || n === assetBaseFromApi) return
+    assetBaseFromApi = n
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('chebe-asset-base'))
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export async function initApiBase() {
   if (resolvedBase !== null) return
@@ -54,9 +77,18 @@ export function getApiBase() {
 export function getProductImageUrl(image) {
   if (!image) return ''
   if (typeof image !== 'string') return image
-  if (image.startsWith('http://') || image.startsWith('https://')) return image
-  const base = getApiBase()
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    try {
+      const u = new URL(image)
+      if (!/^\/images\/(products|temoignages)\/[^/]+/.test(u.pathname)) return ''
+      return image
+    } catch {
+      return ''
+    }
+  }
   const path = image.startsWith('/') ? image : `/${image}`
+  if (!isValidRelativeImagePath(path)) return ''
+  const base = assetBaseFromApi || getApiBase()
   return base ? `${base}${path}` : path
 }
 
@@ -73,6 +105,7 @@ async function parseApiResponse(res) {
 export async function getProducts() {
   const base = getApiBase()
   const res = await fetch(`${base}/api/products`)
+  applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Erreur chargement produits')
   return res.json()
 }
@@ -205,6 +238,7 @@ export async function uploadImage(file, token, { folder = 'products' } = {}) {
 export async function getResults() {
   const base = getApiBase()
   const res = await fetch(`${base}/api/results`)
+  applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Erreur chargement résultats')
   return res.json()
 }

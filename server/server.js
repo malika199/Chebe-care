@@ -26,13 +26,49 @@ const SMTP_USER = process.env.SMTP_USER || ''
 const SMTP_PASS = process.env.SMTP_PASS || ''
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'no-reply@localhost'
 /** URL publique forcée pour les assets (images) si le proxy envoie un Host incorrect. Sans slash final. */
-const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '')
-  .trim()
-  .replace(/\/+$/, '')
+function normalizeEnvBaseUrl(u) {
+  let s = String(u || '').trim().replace(/\/+$/, '')
+  if (/\/api$/i.test(s)) s = s.replace(/\/api$/i, '').replace(/\/+$/, '')
+  s = s.replace(/\/images(\/(products|temoignages))?$/i, '').replace(/\/+$/, '')
+  return s
+}
+
+const PUBLIC_BASE_URL = normalizeEnvBaseUrl(process.env.PUBLIC_BASE_URL || '')
+
+function stripTrailingSlash(u) {
+  return String(u || '').replace(/\/+$/, '')
+}
+
+/**
+ * URL publique de l’API sans requête HTTP (Railway, Render, Fly…).
+ * Évite que X-Asset-Base-Url pointe vers le domaine du site vitrine au lieu de l’API.
+ */
+function getPlatformPublicBase() {
+  if (PUBLIC_BASE_URL) return PUBLIC_BASE_URL
+
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN?.trim()
+  if (railwayDomain) {
+    const host = railwayDomain.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0]
+    if (host) return `https://${host}`
+  }
+
+  const railwayUrl = process.env.RAILWAY_STATIC_URL?.trim()
+  if (railwayUrl) return normalizeEnvBaseUrl(railwayUrl)
+
+  const renderUrl = process.env.RENDER_EXTERNAL_URL?.trim()
+  if (renderUrl) return normalizeEnvBaseUrl(renderUrl)
+
+  const flyApp = process.env.FLY_APP_NAME?.trim()
+  if (flyApp) return `https://${flyApp}.fly.dev`
+
+  return ''
+}
 
 /** Base publique pour préfixer /images/… (identique à /api/public-base). */
 function getAssetBaseUrlFromRequest(req) {
-  if (PUBLIC_BASE_URL) return PUBLIC_BASE_URL
+  const fromPlatform = getPlatformPublicBase()
+  if (fromPlatform) return fromPlatform
+
   const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https')
     .split(',')[0]
     .trim()
@@ -82,7 +118,21 @@ const app = express()
 app.set('trust proxy', 1)
 app.use(cors({ exposedHeaders: ['X-Asset-Base-Url'] }))
 app.use(express.json())
-app.use('/images', express.static(IMAGES_DIR))
+app.use(
+  '/images',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+    const rel = (req.path || '/').replace(/\/+$/, '') || '/'
+    const parts = rel.split('/').filter(Boolean)
+    if (parts.length === 1 && (parts[0] === 'products' || parts[0] === 'temoignages')) {
+      return res.status(404).type('text/plain; charset=utf-8').send(
+        'URL incomplète : il faut un fichier, par ex. /images/products/huile-barbe.png — pas seulement /images/products/'
+      )
+    }
+    next()
+  },
+  express.static(IMAGES_DIR),
+)
 
 /** Permet au front de préfixer les URLs /images/… quand seul /api est proxifié (même origine). */
 app.get('/api/public-base', (req, res) => {
@@ -506,4 +556,12 @@ app.delete('/api/results/:id', adminAuth, (req, res) => {
 app.listen(PORT, () => {
   console.log(`API disponible sur http://localhost:${PORT}`)
   console.log(`Base de données : ${DATA_FILE}`)
+  const pub = getPlatformPublicBase()
+  if (pub) {
+    console.log(`URL publique images/API (détectée) : ${pub}`)
+  } else if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[server] Aucune URL publique auto-détectée. En prod, définis PUBLIC_BASE_URL=https://ton-api… pour que les photos s’affichent sur le site.'
+    )
+  }
 })
