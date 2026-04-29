@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, forgotPassword, requestPasswordReset, getProductImageUrl } from '../api'
+import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, forgotPassword, getProductImageUrl, logoutAdmin } from '../api'
+import logo from '../assets/images/logo.png'
 import './AdminPage.css'
 
 const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'
@@ -13,7 +14,7 @@ function getImageSrc(path) {
 }
 
 const AdminPage = () => {
-  const [token, setToken] = useState(() => window.sessionStorage.getItem('adminToken'))
+  const [token, setToken] = useState('admin-open-access')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [products, setProducts] = useState([])
@@ -32,7 +33,8 @@ const AdminPage = () => {
     features: '',
     usage: '',
     bienfaits: '',
-    pourQui: ''
+    pourQui: '',
+    isMostPopular: false
   })
   const [tab, setTab] = useState('products')
   const [resultsList, setResultsList] = useState([])
@@ -56,15 +58,19 @@ const AdminPage = () => {
   const [forgotError, setForgotError] = useState('')
 
   useEffect(() => {
-    if (token) {
-      window.sessionStorage.setItem('adminToken', token)
-      loadProducts()
+    document.title = 'CHEBE CARE BY SS — Admin'
+    return () => {
+      document.title = 'CHEBE CARE BY SS'
     }
-  }, [token])
+  }, [])
 
   useEffect(() => {
-    if (token && tab === 'results') loadResults()
-  }, [token, tab])
+    loadProducts()
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'results') loadResults()
+  }, [tab])
 
   const loadResults = async () => {
     setLoadingResults(true)
@@ -102,9 +108,11 @@ const AdminPage = () => {
   }
 
   const handleLogout = () => {
-    window.sessionStorage.removeItem('adminToken')
-    setToken(null)
-    setPassword('')
+    logoutAdmin()
+      .catch(() => null)
+      .finally(() => {
+        window.location.href = '/admin/login'
+      })
   }
 
   const resetForgotForm = () => {
@@ -197,7 +205,8 @@ const AdminPage = () => {
         features,
         usage: data.usage || null,
         bienfaits: bienfaits && bienfaits.length > 0 ? bienfaits : null,
-        pourQui: pourQui && pourQui.length > 0 ? pourQui : null
+        pourQui: pourQui && pourQui.length > 0 ? pourQui : null,
+        isMostPopular: Boolean(data.isMostPopular)
       }
       const updated = await updateProduct(productId, payload, token)
       setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
@@ -229,13 +238,14 @@ const AdminPage = () => {
           features,
           usage: newProduct.usage || null,
           bienfaits,
-          pourQui
+          pourQui,
+          isMostPopular: Boolean(newProduct.isMostPopular)
         },
         token
       )
       setProducts((prev) => [...prev, created])
       setShowAddForm(false)
-      setNewProduct({ name: '', description: '', price: '', originalPrice: '', discount: '0', image: '/images/products/placeholder.png', category: 'Cheveux', features: '', usage: '', bienfaits: '', pourQui: '' })
+      setNewProduct({ name: '', description: '', price: '', originalPrice: '', discount: '0', image: '/images/products/placeholder.png', category: 'Cheveux', features: '', usage: '', bienfaits: '', pourQui: '', isMostPopular: false })
       setMessage({ type: 'success', text: 'Produit ajouté.' })
     } catch (e) {
       setMessage({ type: 'error', text: e.message })
@@ -425,7 +435,10 @@ const AdminPage = () => {
     <div className="admin-page">
       <header className="admin-header">
         <div className="admin-header-inner">
-          <h1 className="admin-title">Admin</h1>
+          <div className="admin-header-title">
+            <img src={logo} alt="Logo SS Hair & Beard" className="admin-logo" />
+            <h1 className="admin-title">Admin</h1>
+          </div>
           <nav className="admin-tabs">
             <button type="button" className={'admin-tab ' + (tab === 'products' ? 'active' : '')} onClick={() => setTab('products')}>Produits</button>
             <button type="button" className={'admin-tab ' + (tab === 'results' ? 'active' : '')} onClick={() => setTab('results')}>Résultats</button>
@@ -475,7 +488,7 @@ const AdminPage = () => {
                   </div>
                 </label>
                 <label><span className="admin-label">Titre résultat</span><input type="text" value={newResult.result} onChange={(e) => setNewResult((r) => ({ ...r, result: e.target.value }))} className="admin-input" required /></label>
-                <label><span className="admin-label">Détail</span><input type="text" value={newResult.detail} onChange={(e) => setNewResult((r) => ({ ...r, detail: e.target.value }))} className="admin-input" /></label>
+                <label><span className="admin-label">Détail</span><textarea value={newResult.detail} onChange={(e) => setNewResult((r) => ({ ...r, detail: e.target.value }))} className="admin-input admin-textarea" rows={4} /></label>
                 <div className="admin-form-row">
                   <label><span className="admin-label">Type cheveux</span>
                     <select value={newResult.hairType} onChange={(e) => setNewResult((r) => ({ ...r, hairType: e.target.value }))} className="admin-input">
@@ -689,6 +702,15 @@ const AdminPage = () => {
                 rows={4}
               />
             </label>
+            <label className="admin-checkbox-label">
+              <input
+                type="checkbox"
+                checked={newProduct.isMostPopular}
+                onChange={(e) => setNewProduct((p) => ({ ...p, isMostPopular: e.target.checked }))}
+                className="admin-checkbox"
+              />
+              <span>Le produit le plus apprécié</span>
+            </label>
             <div className="admin-form-actions">
               <button type="submit" className="admin-btn admin-btn-primary">Créer le produit</button>
             </div>
@@ -805,6 +827,7 @@ function EditProductForm({ product, onSave, onCancel, onUploadImage }) {
       : ''
   )
   const [pourQuiStr, setPourQuiStr] = useState(Array.isArray(product.pourQui) ? product.pourQui.join('\n') : '')
+  const [isMostPopular, setIsMostPopular] = useState(product.isMostPopular || false)
 
   return (
     <form
@@ -822,7 +845,8 @@ function EditProductForm({ product, onSave, onCancel, onUploadImage }) {
           featuresStr,
           usage,
           bienfaitsStr,
-          pourQuiStr
+          pourQuiStr,
+          isMostPopular
         })
       }}
     >
@@ -886,6 +910,18 @@ function EditProductForm({ product, onSave, onCancel, onUploadImage }) {
         <label><span>Bienfaits (Titre | Description, un par ligne)</span><textarea value={bienfaitsStr} onChange={(e) => setBienfaitsStr(e.target.value)} className="admin-input admin-textarea" rows={4} placeholder="Titre | Description" /></label>
         <label><span>Pour qui (un par ligne)</span><textarea value={pourQuiStr} onChange={(e) => setPourQuiStr(e.target.value)} className="admin-input admin-textarea" rows={2} placeholder="Ex. Cheveux secs, Barbes…" /></label>
         <label><span>Mode d'emploi</span><textarea value={usage} onChange={(e) => setUsage(e.target.value)} className="admin-input admin-textarea" rows={4} placeholder="Instructions d'utilisation…" /></label>
+      </section>
+
+      <section className="admin-form-section">
+        <label className="admin-checkbox-label">
+          <input
+            type="checkbox"
+            checked={isMostPopular}
+            onChange={(e) => setIsMostPopular(e.target.checked)}
+            className="admin-checkbox"
+          />
+          <span>Le produit le plus apprécié</span>
+        </label>
       </section>
 
       <div className="admin-edit-actions admin-edit-actions-footer">

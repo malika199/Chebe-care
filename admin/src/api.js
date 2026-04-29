@@ -102,46 +102,70 @@ async function parseApiResponse(res) {
   }
 }
 
+function withJsonHeaders(extra = {}) {
+  return { 'Content-Type': 'application/json', ...extra }
+}
+
+async function apiFetch(url, options = {}) {
+  return fetch(url, { credentials: 'include', ...options })
+}
+
 export async function getProducts() {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/products`)
+  const res = await apiFetch(`${base}/api/products`)
   applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Erreur chargement produits')
   return res.json()
 }
 
-export async function loginAdmin(password) {
+export async function loginAdmin(email, password) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/admin/login`, {
+  const res = await apiFetch(`${base}/api/admin/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password })
+    headers: withJsonHeaders(),
+    body: JSON.stringify({ email, password })
   })
-  const data = await res.json()
+  const data = await parseApiResponse(res)
   if (!res.ok) throw new Error(data.error || 'Erreur connexion')
-  return data.token
+  return data
 }
 
-export async function changePassword(currentPassword, newPassword, token) {
+export async function logoutAdmin() {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/admin/change-password`, {
+  const res = await apiFetch(`${base}/api/admin/logout`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ currentPassword, newPassword })
+    headers: withJsonHeaders()
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Erreur')
-  return data.token
+  const data = await parseApiResponse(res)
+  if (!res.ok) throw new Error(data.error || 'Erreur déconnexion')
+  return data
 }
 
-export async function requestPasswordReset(email) {
+export async function getAdminMe() {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/admin/request-password-reset`, {
+  const res = await apiFetch(`${base}/api/admin/me`)
+  const data = await parseApiResponse(res)
+  if (!res.ok) throw new Error(data.error || 'Session invalide')
+  return data
+}
+
+export async function changePassword(currentPassword, newPassword, confirmPassword) {
+  const base = getApiBase()
+  const res = await apiFetch(`${base}/api/admin/change-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withJsonHeaders(),
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+  })
+  const data = await parseApiResponse(res)
+  if (!res.ok) throw new Error(data.error || 'Erreur')
+  return data
+}
+
+export async function forgotPassword(email) {
+  const base = getApiBase()
+  const res = await apiFetch(`${base}/api/admin/forgot-password`, {
+    method: 'POST',
+    headers: withJsonHeaders(),
     body: JSON.stringify({ email })
   })
   const data = await parseApiResponse(res)
@@ -149,35 +173,27 @@ export async function requestPasswordReset(email) {
   return data
 }
 
-export async function forgotPassword(email, resetCode, newPassword) {
+export async function requestPasswordReset(email) {
+  return forgotPassword(email)
+}
+
+export async function resetPassword(token, newPassword, confirmPassword) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/admin/forgot-password`, {
+  const res = await apiFetch(`${base}/api/admin/reset-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, resetCode, newPassword })
+    headers: withJsonHeaders(),
+    body: JSON.stringify({ token, newPassword, confirmPassword })
   })
   const data = await parseApiResponse(res)
   if (!res.ok) throw new Error(data.error || 'Erreur')
   return data
 }
 
-export async function getRecoveryCode(token) {
-  const base = getApiBase()
-  const res = await fetch(`${base}/api/admin/recovery-code`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  if (!res.ok) throw new Error('Impossible de récupérer le code')
-  return res.json()
-}
-
 export async function updateProduct(id, data, token) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/products/${id}`, {
+  const res = await apiFetch(`${base}/api/products/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
+    headers: withJsonHeaders(),
     body: JSON.stringify(data)
   })
   if (!res.ok) {
@@ -189,12 +205,9 @@ export async function updateProduct(id, data, token) {
 
 export async function createProduct(data, token) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/products`, {
+  const res = await apiFetch(`${base}/api/products`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
+    headers: withJsonHeaders(),
     body: JSON.stringify(data)
   })
   if (!res.ok) {
@@ -206,10 +219,7 @@ export async function createProduct(data, token) {
 
 export async function deleteProduct(id, token) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/products/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` }
-  })
+  const res = await apiFetch(`${base}/api/products/${id}`, { method: 'DELETE' })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || 'Erreur suppression')
@@ -222,9 +232,8 @@ export async function uploadImage(file, token, { folder = 'products' } = {}) {
   const formData = new FormData()
   formData.append('image', file)
   const query = folder === 'temoignages' ? '?folder=temoignages' : ''
-  const res = await fetch(`${base}/api/upload${query}`, {
+  const res = await apiFetch(`${base}/api/upload${query}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
     body: formData
   })
   if (!res.ok) {
@@ -237,7 +246,7 @@ export async function uploadImage(file, token, { folder = 'products' } = {}) {
 
 export async function getResults() {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/results`)
+  const res = await apiFetch(`${base}/api/results`)
   applyAssetBaseFromResponse(res)
   if (!res.ok) throw new Error('Erreur chargement résultats')
   return res.json()
@@ -245,12 +254,9 @@ export async function getResults() {
 
 export async function createResult(data, token) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/results`, {
+  const res = await apiFetch(`${base}/api/results`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
+    headers: withJsonHeaders(),
     body: JSON.stringify(data)
   })
   if (!res.ok) {
@@ -262,12 +268,9 @@ export async function createResult(data, token) {
 
 export async function updateResult(id, data, token) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/results/${id}`, {
+  const res = await apiFetch(`${base}/api/results/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
+    headers: withJsonHeaders(),
     body: JSON.stringify(data)
   })
   if (!res.ok) {
@@ -279,10 +282,7 @@ export async function updateResult(id, data, token) {
 
 export async function deleteResult(id, token) {
   const base = getApiBase()
-  const res = await fetch(`${base}/api/results/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` }
-  })
+  const res = await apiFetch(`${base}/api/results/${id}`, { method: 'DELETE' })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || 'Erreur suppression')
