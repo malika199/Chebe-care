@@ -444,13 +444,33 @@ app.post("/api/admin/login", loginRateLimiter, async (req, res) => {
     if (!config)
       return res.status(500).json({ error: "Configuration admin introuvable" });
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedEnvEmail = String(ADMIN_EMAIL || "").trim().toLowerCase();
+    const isEnvTempLogin =
+      Boolean(normalizedEnvEmail) &&
+      normalizedEmail === normalizedEnvEmail &&
+      String(password || "") === String(ADMIN_TEMP_PASSWORD);
     if (!normalizedEmail || !password) {
       return res.status(400).json({ error: "Email et mot de passe requis" });
     }
-    if (normalizedEmail !== String(config.email || "").trim().toLowerCase()) {
+    if (
+      !isEnvTempLogin &&
+      normalizedEmail !== String(config.email || "").trim().toLowerCase()
+    ) {
       return res.status(401).json({ error: "Identifiants invalides" });
     }
-    const ok = await bcrypt.compare(String(password), String(config.passwordHash || ""));
+    let ok = isEnvTempLogin
+      ? true
+      : await bcrypt.compare(String(password), String(config.passwordHash || ""));
+    if (
+      (!ok && config.mustChangePassword && String(password) === String(ADMIN_TEMP_PASSWORD)) ||
+      isEnvTempLogin
+    ) {
+      config.email = normalizedEnvEmail || normalizedEmail;
+      config.passwordHash = await bcrypt.hash(String(ADMIN_TEMP_PASSWORD), BCRYPT_ROUNDS);
+      config.mustChangePassword = true;
+      writeAdminConfig(config);
+      ok = true;
+    }
     if (!ok) return res.status(401).json({ error: "Identifiants invalides" });
     setAdminSessionCookie(res, config);
     res.json({
