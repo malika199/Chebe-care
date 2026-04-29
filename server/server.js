@@ -28,7 +28,7 @@ const SMTP_HOST = process.env.SMTP_HOST || "";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
-const RESET_MAIL_FROM = "chebecare0@gmail.com";
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "chebecare0@gmail.com";
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "change-this-secret";
 const ADMIN_COOKIE_NAME = "admin_session";
 const ADMIN_RESET_TTL_MS = 15 * 60 * 1000;
@@ -290,16 +290,33 @@ function getTokenFromRequest(req) {
 
 function getMailTransporter() {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  return nodemailer.createTransport({
+  return nodemailer.createTransport(buildSmtpOptions(SMTP_PORT));
+}
+
+function buildSmtpOptions(port) {
+  return {
     host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
-    requireTLS: SMTP_PORT === 587,
+    port,
+    secure: port === 465,
+    requireTLS: port === 587,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
     },
-  });
+  };
+}
+
+function isNetworkSmtpError(err) {
+  const code = err?.code || "";
+  return (
+    code === "ETIMEDOUT" ||
+    code === "ECONNREFUSED" ||
+    code === "ESOCKET" ||
+    code === "ECONNRESET"
+  );
 }
 
 function buildResetUrl(req, token) {
@@ -332,16 +349,24 @@ function smtpErrorToClientMessage(err) {
 }
 
 async function sendResetLinkByEmail(recipientEmail, resetUrl) {
-  const transporter = getMailTransporter();
-  if (!transporter) throw new Error("SMTP non configuré");
-  await transporter.sendMail({
-    from: RESET_MAIL_FROM,
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) throw new Error("SMTP non configuré");
+  const payload = {
+    from: SMTP_FROM,
     to: recipientEmail,
-    envelope: { from: RESET_MAIL_FROM, to: recipientEmail },
+    envelope: { from: SMTP_USER, to: recipientEmail },
     subject: "Réinitialisation du mot de passe administrateur",
     text: `Cliquez sur ce lien pour réinitialiser votre mot de passe : ${resetUrl}\nCe lien expire dans 15 minutes.`,
     html: `<p>Cliquez sur ce lien pour réinitialiser votre mot de passe :</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Ce lien expire dans 15 minutes.</p>`,
-  });
+  };
+  try {
+    const transporter = getMailTransporter();
+    await transporter.sendMail(payload);
+  } catch (err) {
+    const fallbackPort = SMTP_PORT === 587 ? 465 : SMTP_PORT === 465 ? 587 : null;
+    if (!fallbackPort || !isNetworkSmtpError(err)) throw err;
+    const fallbackTransporter = nodemailer.createTransport(buildSmtpOptions(fallbackPort));
+    await fallbackTransporter.sendMail(payload);
+  }
 }
 
 function getAdminIdentityOrNull(req) {
