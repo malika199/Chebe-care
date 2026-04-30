@@ -102,6 +102,25 @@ async function parseApiResponse(res) {
   }
 }
 
+/** Erreur API avec champs optionnels renvoyés par le serveur (ex. SMTP). */
+export function throwApiError(data) {
+  const err = new Error(data.error || 'Erreur')
+  if (data.smtpErrorCode) err.smtpErrorCode = data.smtpErrorCode
+  if (data.smtpHint) err.smtpHint = data.smtpHint
+  if (data.smtpUnderlyingCode) err.smtpUnderlyingCode = data.smtpUnderlyingCode
+  throw err
+}
+
+/** Texte multi-lignes pour afficher erreur + code réseau + piste (mot de passe oublié admin). */
+export function formatForgotPasswordApiError(err) {
+  const msg = err?.message || 'Erreur'
+  if (!err?.smtpHint && !err?.smtpUnderlyingCode) return msg
+  const lines = [msg]
+  if (err.smtpUnderlyingCode) lines.push(`Code technique : ${err.smtpUnderlyingCode}`)
+  if (err.smtpHint) lines.push(err.smtpHint)
+  return lines.join('\n\n')
+}
+
 function withJsonHeaders(extra = {}) {
   return { 'Content-Type': 'application/json', ...extra }
 }
@@ -163,13 +182,14 @@ export async function changePassword(currentPassword, newPassword, confirmPasswo
 
 export async function forgotPassword(email) {
   const base = getApiBase()
-  const res = await apiFetch(`${base}/api/admin/forgot-password`, {
+  const url = `${base}/api/admin/forgot-password`
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: withJsonHeaders(),
     body: JSON.stringify({ email })
   })
   const data = await parseApiResponse(res)
-  if (!res.ok) throw new Error(data.error || 'Erreur')
+  if (!res.ok) throwApiError(data)
   return data
 }
 

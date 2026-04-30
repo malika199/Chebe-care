@@ -1,4 +1,5 @@
 import "dotenv/config";
+import dns from "node:dns";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -29,6 +30,17 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "chebecare0@gmail.com";
+/** Render (et beaucoup de reverse proxies) coupent la requête HTTP ~30s → 502 sans en-têtes CORS. Tout l’envoi SMTP doit finir avant ça. */
+const SMTP_HTTP_BUDGET_MS = Math.min(
+  120_000,
+  Math.max(12_000, Number(process.env.SMTP_HTTP_BUDGET_MS || 26_000)),
+);
+/** Sur Render/cloud, l’IPv6 vers certains SMTP time out ; IPv4 en premier réduit les ETIMEDOUT. */
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch {
+  /* Node < 17 : ignoré */
+}
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "change-this-secret";
 const ADMIN_COOKIE_NAME = "admin_session";
 const ADMIN_RESET_TTL_MS = 15 * 60 * 1000;
@@ -294,19 +306,31 @@ function getMailTransporter() {
 }
 
 function buildSmtpOptions(port) {
-  return {
+  const conn = Math.min(20_000, Math.max(4_000, Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 7_000)));
+  const greet = Math.min(15_000, Math.max(3_000, Number(process.env.SMTP_GREETING_TIMEOUT_MS || 6_000)));
+  const sock = Math.min(25_000, Math.max(5_000, Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 10_000)));
+  const opts = {
     host: SMTP_HOST,
     port,
     secure: port === 465,
     requireTLS: port === 587,
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
+    connectionTimeout: conn,
+    greetingTimeout: greet,
+    socketTimeout: sock,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
     },
+    tls: {
+      minVersion: "TLSv1.2",
+    },
   };
+  if (String(process.env.SMTP_FORCE_IPV4 || "").toLowerCase() === "true") {
+    opts.lookup = (hostname, _options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
+    };
+  }
+  return opts;
 }
 
 function isNetworkSmtpError(err) {
@@ -332,24 +356,127 @@ function buildResetUrl(req, token) {
   return `${proto}://${host}/admin/reset-password?token=${encodeURIComponent(token)}`;
 }
 
-/** Message utilisateur sans exposer de détails sensibles. */
-function smtpErrorToClientMessage(err) {
+/**
+ * Erreurs SMTP « canalisées » pour l’admin : code stable + message + piste de correction.
+ * Ne jamais inclure de secrets (mot de passe, token).
+ */
+function smtpErrorToClientPayload(err) {
   const code = err?.code || "";
-  const response = String(err?.response || err?.message || "");
+  const response = String(err?.response || "");
+  const message = String(err?.message || err || "");
+
+  if (code === "ESMTP_HTTP_DEADLINE") {
+    return {
+      error:
+        "L’envoi du mail a été arrêté : la requête dépassait le délai autorisé par l’hébergeur (souvent ~30s sur Render).",
+      smtpErrorCode: "SMTP_HTTP_DEADLINE",
+      smtpHint:
+        "Le navigateur peut afficher « CORS » ou 502 dans ce cas : ce n’est pas un blocage CORS réel, c’est un timeout côté proxy. Réduisez la latence SMTP (bon SMTP_HOST/port, SMTP_FORCE_IPV4=true) ou augmentez SMTP_HTTP_BUDGET_MS (max ~28s sur Render).",
+    };
+  }
+
+  if (/SMTP non configuré/i.test(message)) {
+    return {
+      error:
+        "Envoi d’email impossible : le serveur n’a pas SMTP_HOST, SMTP_USER et SMTP_PASS.",
+      smtpErrorCode: "SMTP_NOT_CONFIGURED",
+      smtpHint:
+        "Sur Render : Settings → Environment → ajoutez SMTP_HOST, SMTP_PORT (587 ou 465), SMTP_USER, SMTP_PASS, SMTP_FROM. Redéployez si besoin.",
+    };
+  }
+
   if (code === "EAUTH" || /535|534|authentication failed/i.test(response)) {
-    return "Connexion SMTP refusée : identifiants incorrects.";
+    return {
+      error: "Connexion SMTP refusée : identifiants incorrects.",
+      smtpErrorCode: "SMTP_AUTH_FAILED",
+      smtpHint:
+        "Vérifiez SMTP_USER et SMTP_PASS (Gmail = mot de passe d’application, pas le mot de passe du compte).",
+    };
   }
+
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") {
+    return {
+      error: "Serveur SMTP introuvable (nom d’hôte ou DNS).",
+      smtpErrorCode: "SMTP_DNS_FAILED",
+      smtpHint:
+        "Vérifiez SMTP_HOST sur Render (ex. Gmail = smtp.gmail.com exactement). Une faute de frappe donne souvent ce résultat.",
+    };
+  }
+
   if (code === "ETIMEDOUT" || code === "ECONNREFUSED") {
-    return "Impossible de joindre le serveur SMTP (réseau ou pare-feu).";
+    return {
+      error: "Impossible de joindre le serveur SMTP (réseau ou pare-feu).",
+      smtpErrorCode: "SMTP_UNREACHABLE",
+      smtpHint:
+        "Sur Render : vérifiez SMTP_HOST et SMTP_PORT (587 puis 465, le serveur réessaie l’autre port). Si ça persiste, ajoutez SMTP_FORCE_IPV4=true dans les variables d’environnement (contourne des timeouts IPv6). Gmail : mot de passe d’application + SMTP_USER = l’adresse Gmail complète.",
+    };
   }
+
   if (code === "ESOCKET" || code === "ECONNRESET") {
-    return "Connexion au serveur mail interrompue. Réessayez.";
+    return {
+      error: "Connexion au serveur mail interrompue. Réessayez.",
+      smtpErrorCode: "SMTP_CONNECTION_LOST",
+      smtpHint:
+        "Souvent incompatibilité TLS/port ; comparez avec la doc SMTP de votre fournisseur (Hostinger, Gmail, etc.).",
+    };
   }
-  return "Impossible d'envoyer l'email.";
+
+  return {
+    error: "Impossible d'envoyer l'email.",
+    smtpErrorCode: "SMTP_SEND_FAILED",
+    smtpHint: "Consultez les logs serveur (message nodemailer, code réseau).",
+  };
+}
+
+function makeSmtpHttpBudgetError() {
+  const e = new Error("SMTP_HTTP_DEADLINE");
+  e.code = "ESMTP_HTTP_DEADLINE";
+  return e;
+}
+
+function runWithDeadline(promise, ms) {
+  let t;
+  const deadline = new Promise((_, reject) => {
+    t = setTimeout(() => reject(makeSmtpHttpBudgetError()), ms);
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(t));
+}
+
+async function sendMailOnceWithPortFallback(payload) {
+  try {
+    const transporter = getMailTransporter();
+    console.log("[SMTP debug] tentative sendMail port", SMTP_PORT);
+    await transporter.sendMail(payload);
+    console.log("[SMTP debug] sendMail OK (port principal", SMTP_PORT, ")");
+  } catch (err) {
+    console.error("[SMTP debug] sendMail échec port principal", {
+      code: err?.code,
+      message: err?.message,
+      command: err?.command,
+      response: err?.response,
+      errno: err?.errno,
+      syscall: err?.syscall,
+    });
+    const fallbackPort = SMTP_PORT === 587 ? 465 : SMTP_PORT === 465 ? 587 : null;
+    if (!fallbackPort || !isNetworkSmtpError(err)) throw err;
+    console.log("[SMTP debug] nouvelle tentative port", fallbackPort);
+    const fallbackTransporter = nodemailer.createTransport(buildSmtpOptions(fallbackPort));
+    await fallbackTransporter.sendMail(payload);
+    console.log("[SMTP debug] sendMail OK (port secours", fallbackPort, ")");
+  }
 }
 
 async function sendResetLinkByEmail(recipientEmail, resetUrl) {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) throw new Error("SMTP non configuré");
+  console.log("[SMTP debug] sendResetLinkByEmail début", {
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    smtpUserConfigured: Boolean(SMTP_USER),
+    smtpPassConfigured: Boolean(SMTP_PASS),
+    recipientMasked: recipientEmail.replace(/^(.{2}).+(@.+)$/, "$1***$2"),
+    resetUrlLength: resetUrl.length,
+    smtpForceIpv4: String(process.env.SMTP_FORCE_IPV4 || "").toLowerCase() === "true",
+  });
   const payload = {
     from: SMTP_FROM,
     to: recipientEmail,
@@ -358,15 +485,22 @@ async function sendResetLinkByEmail(recipientEmail, resetUrl) {
     text: `Cliquez sur ce lien pour réinitialiser votre mot de passe : ${resetUrl}\nCe lien expire dans 15 minutes.`,
     html: `<p>Cliquez sur ce lien pour réinitialiser votre mot de passe :</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Ce lien expire dans 15 minutes.</p>`,
   };
-  try {
-    const transporter = getMailTransporter();
-    await transporter.sendMail(payload);
-  } catch (err) {
-    const fallbackPort = SMTP_PORT === 587 ? 465 : SMTP_PORT === 465 ? 587 : null;
-    if (!fallbackPort || !isNetworkSmtpError(err)) throw err;
-    const fallbackTransporter = nodemailer.createTransport(buildSmtpOptions(fallbackPort));
-    await fallbackTransporter.sendMail(payload);
-  }
+  const outerRetry =
+    String(process.env.SMTP_OUTER_NETWORK_RETRY || "").toLowerCase() === "true";
+  const smtpRetryDelayMs = 2000;
+
+  const run = async () => {
+    try {
+      await sendMailOnceWithPortFallback(payload);
+    } catch (err) {
+      if (!outerRetry || !isNetworkSmtpError(err)) throw err;
+      console.warn("[SMTP debug] 2e passe réseau après pause…", err?.code);
+      await new Promise((r) => setTimeout(r, smtpRetryDelayMs));
+      await sendMailOnceWithPortFallback(payload);
+    }
+  };
+
+  await runWithDeadline(run(), SMTP_HTTP_BUDGET_MS);
 }
 
 function getAdminIdentityOrNull(req) {
@@ -554,12 +688,17 @@ app.post("/api/admin/forgot-password", async (req, res) => {
   try {
     const { email } = req.body || {};
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    console.log("[SMTP debug] POST /api/admin/forgot-password", {
+      email: normalizedEmail.replace(/^(.{2}).+(@.+)$/, "$1***$2"),
+    });
     if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+      console.log("[SMTP debug] rejet: email invalide");
       return res.status(400).json({ error: "Adresse email invalide" });
     }
     const config = readAdminConfig();
     if (!config) return res.status(500).json({ error: "Configuration admin introuvable" });
     if (normalizedEmail !== String(config.email || "").trim().toLowerCase()) {
+      console.log("[SMTP debug] email ne correspond pas à l’admin enregistré → réponse générique (pas d’envoi)");
       return res.json({ ok: true, message: "Si le compte existe, un email a été envoyé." });
     }
     const { token, tokenHash } = makeResetToken();
@@ -567,12 +706,23 @@ app.post("/api/admin/forgot-password", async (req, res) => {
     config.resetTokenExpiresAt = new Date(Date.now() + ADMIN_RESET_TTL_MS).toISOString();
     writeAdminConfig(config);
     const resetUrl = buildResetUrl(req, token);
+    console.log("[SMTP debug] token enregistré, envoi SMTP… (URL non loggée, longueur:", resetUrl.length, ")");
     await sendResetLinkByEmail(normalizedEmail, resetUrl);
+    console.log("[SMTP debug] forgot-password terminé avec succès");
     res.json({ ok: true, message: "Si le compte existe, un email a été envoyé." });
   } catch (e) {
     console.error("[SMTP] Échec reset password:", e?.message || e);
+    console.error("[SMTP debug] détail erreur", {
+      code: e?.code,
+      errno: e?.errno,
+      syscall: e?.syscall,
+      command: e?.command,
+      response: e?.response,
+    });
     if (e?.response) console.error("[SMTP] Réponse serveur:", e.response);
-    res.status(500).json({ error: smtpErrorToClientMessage(e) });
+    const smtpPayload = smtpErrorToClientPayload(e);
+    if (e?.code) smtpPayload.smtpUnderlyingCode = e.code;
+    res.status(500).json(smtpPayload);
   }
 });
 

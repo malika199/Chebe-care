@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, forgotPassword, getProductImageUrl, logoutAdmin } from '../api'
+import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, requestPasswordReset, resetPassword, getProductImageUrl, logoutAdmin, formatForgotPasswordApiError } from '../api'
 import logo from '../assets/images/logo.png'
 import './AdminPage.css'
 
@@ -51,7 +51,7 @@ const AdminPage = () => {
   })
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
-  const [forgotResetCode, setForgotResetCode] = useState('')
+  const [forgotResetToken, setForgotResetToken] = useState('')
   const [forgotStep, setForgotStep] = useState('request')
   const [forgotNewPassword, setForgotNewPassword] = useState('')
   const [forgotConfirm, setForgotConfirm] = useState('')
@@ -118,7 +118,7 @@ const AdminPage = () => {
   const resetForgotForm = () => {
     setForgotStep('request')
     setForgotEmail('')
-    setForgotResetCode('')
+    setForgotResetToken('')
     setForgotNewPassword('')
     setForgotConfirm('')
     setForgotError('')
@@ -136,9 +136,12 @@ const AdminPage = () => {
       await requestPasswordReset(email)
       setForgotEmail(email)
       setForgotStep('confirm')
-      setMessage({ type: 'success', text: 'Un code de réinitialisation a été envoyé par email.' })
+      setMessage({
+        type: 'success',
+        text: 'Un lien de réinitialisation a été envoyé par email (ou consultez les spams).',
+      })
     } catch (err) {
-      setForgotError(err.message || 'Erreur')
+      setForgotError(formatForgotPasswordApiError(err))
     }
   }
 
@@ -149,12 +152,17 @@ const AdminPage = () => {
       setForgotError('Les deux mots de passe ne correspondent pas.')
       return
     }
-    if (forgotNewPassword.length < 4) {
-      setForgotError('Le mot de passe doit faire au moins 4 caractères.')
+    if (forgotNewPassword.length < 8) {
+      setForgotError('Le mot de passe doit faire au moins 8 caractères (exigence du serveur).')
+      return
+    }
+    const rawToken = forgotResetToken.trim()
+    if (!rawToken) {
+      setForgotError('Collez le token présent dans le lien reçu par email (après token=…).')
       return
     }
     try {
-      await forgotPassword(forgotEmail.trim(), forgotResetCode.trim(), forgotNewPassword)
+      await resetPassword(rawToken, forgotNewPassword, forgotConfirm)
       setShowForgotPassword(false)
       resetForgotForm()
       setPassword('')
@@ -319,7 +327,7 @@ const AdminPage = () => {
             <span className="admin-login-icon" aria-hidden>🔐</span>
             <h1 className="admin-login-title">Administration</h1>
             <p className="admin-login-subtitle">
-              {showForgotPassword ? 'Réinitialiser le mot de passe avec un code reçu par email.' : 'Connectez-vous pour modifier les produits et les prix.'}
+              {showForgotPassword ? 'Réinitialiser le mot de passe via le lien reçu par email.' : 'Connectez-vous pour modifier les produits et les prix.'}
             </p>
           </div>
           {showForgotPassword ? (
@@ -338,7 +346,7 @@ const AdminPage = () => {
                   />
                 </label>
                 {forgotError && <p className="admin-error">{forgotError}</p>}
-                <button type="submit" className="admin-btn admin-btn-primary admin-btn-login">Envoyer le code</button>
+                <button type="submit" className="admin-btn admin-btn-primary admin-btn-login">Envoyer le lien</button>
                 <button type="button" className="admin-btn admin-btn-ghost admin-btn-block" onClick={() => { setShowForgotPassword(false); resetForgotForm() }}>
                   ← Retour à la connexion
                 </button>
@@ -357,13 +365,13 @@ const AdminPage = () => {
                   />
                 </label>
                 <label>
-                  <span className="admin-label">Code reçu par email</span>
+                  <span className="admin-label">Token du lien (collez tout le jeton après token=)</span>
                   <input
                     type="text"
-                    value={forgotResetCode}
-                    onChange={(e) => setForgotResetCode(e.target.value)}
+                    value={forgotResetToken}
+                    onChange={(e) => setForgotResetToken(e.target.value)}
                     className="admin-input"
-                    placeholder="Ex: 123456"
+                    placeholder="Longue chaîne hexadécimale du mail"
                     autoFocus
                     required
                   />
@@ -375,7 +383,7 @@ const AdminPage = () => {
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
                     className="admin-input"
-                    placeholder="Au moins 4 caractères"
+                    placeholder="Au moins 8 caractères"
                     required
                   />
                 </label>

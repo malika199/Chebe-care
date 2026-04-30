@@ -135,7 +135,7 @@ const ProductsSection = () => {
               >
                 <ProductCard
                   product={product}
-                  featured={product.id === 5}
+                  featured={product.isMostPopular === true}
                   compact
                 />
               </div>

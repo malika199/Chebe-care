@@ -25,3 +25,4 @@ dist-ssr
 
 # Données sensibles admin (mot de passe + code de récupération)
 server/data/admin.json
+server/.env

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import AdminPage from './pages/AdminPage'
-import { changePassword, forgotPassword, getAdminMe, loginAdmin, resetPassword } from './api'
+import { changePassword, forgotPassword, formatForgotPasswordApiError, getAdminMe, loginAdmin, resetPassword } from './api'
 import './pages/AdminAuth.css'
 
 function App() {
@@ -203,7 +203,7 @@ function ForgotPasswordPage() {
       const data = await forgotPassword(email.trim())
       setOk(data.message || 'Si le compte existe, un email a été envoyé.')
     } catch (err) {
-      setError(err.message || 'Erreur')
+      setError(formatForgotPasswordApiError(err))
     } finally {
       setLoading(false)
     }

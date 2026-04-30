@@ -47,7 +47,8 @@ export const products = [
     discount: 0,
     image: '/images/products/poudre-chebe.png',
     category: 'Cheveux',
-    features: ['Chebé pur du Tchad', 'Nourrit en profondeur', 'Démêle et assouplit', 'Favorise la pousse']
+    features: ['Chebé pur du Tchad', 'Nourrit en profondeur', 'Démêle et assouplit', 'Favorise la pousse'],
+    isMostPopular: true
   },
   {
     id: 3,

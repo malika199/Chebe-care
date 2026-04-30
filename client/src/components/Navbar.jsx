@@ -19,6 +19,7 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
+        
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
           <a 
             href="#home" 
