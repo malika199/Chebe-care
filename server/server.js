@@ -30,6 +30,26 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "chebecare0@gmail.com";
+
+/** Render définit `RENDER=true` sur les services web. */
+function isLikelyRenderRuntime() {
+  return String(process.env.RENDER || "").toLowerCase() === "true";
+}
+
+/**
+ * Résolution IPv4 uniquement pour la socket SMTP (réduit ETIMEDOUT).
+ * - SMTP_FORCE_IPV4=true → activé
+ * - SMTP_FORCE_IPV4=false → désactivé
+ * - non défini sur Render → activé par défaut
+ * - non défini ailleurs → désactivé
+ */
+function smtpForceIpv4LookupEnabled() {
+  const v = String(process.env.SMTP_FORCE_IPV4 || "").toLowerCase();
+  if (v === "true") return true;
+  if (v === "false") return false;
+  return isLikelyRenderRuntime();
+}
+
 /** Render (et beaucoup de reverse proxies) coupent la requête HTTP ~30s → 502 sans en-têtes CORS. Tout l’envoi SMTP doit finir avant ça. */
 const SMTP_HTTP_BUDGET_MS = Math.min(
   120_000,
@@ -309,11 +329,16 @@ function buildSmtpOptions(port) {
   const conn = Math.min(20_000, Math.max(4_000, Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 7_000)));
   const greet = Math.min(15_000, Math.max(3_000, Number(process.env.SMTP_GREETING_TIMEOUT_MS || 6_000)));
   const sock = Math.min(25_000, Math.max(5_000, Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 10_000)));
+  const host = String(SMTP_HOST || "").trim();
+  /** Sur 587, requireTLS:true impose STARTTLS tout de suite ; certains serveurs coupent la socket (ESOCKET). STARTTLS reste utilisé si le serveur l’annonce. */
+  const requireTLS587 =
+    port === 587 &&
+    String(process.env.SMTP_REQUIRE_TLS || "").toLowerCase() === "true";
   const opts = {
-    host: SMTP_HOST,
+    host,
     port,
     secure: port === 465,
-    requireTLS: port === 587,
+    requireTLS: requireTLS587,
     connectionTimeout: conn,
     greetingTimeout: greet,
     socketTimeout: sock,
@@ -323,9 +348,13 @@ function buildSmtpOptions(port) {
     },
     tls: {
       minVersion: "TLSv1.2",
+      servername: host,
     },
   };
-  if (String(process.env.SMTP_FORCE_IPV4 || "").toLowerCase() === "true") {
+  if (String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || "true").toLowerCase() === "false") {
+    opts.tls.rejectUnauthorized = false;
+  }
+  if (smtpForceIpv4LookupEnabled()) {
     opts.lookup = (hostname, _options, callback) => {
       dns.lookup(hostname, { family: 4 }, callback);
     };
@@ -371,7 +400,7 @@ function smtpErrorToClientPayload(err) {
         "L’envoi du mail a été arrêté : la requête dépassait le délai autorisé par l’hébergeur (souvent ~30s sur Render).",
       smtpErrorCode: "SMTP_HTTP_DEADLINE",
       smtpHint:
-        "Le navigateur peut afficher « CORS » ou 502 dans ce cas : ce n’est pas un blocage CORS réel, c’est un timeout côté proxy. Réduisez la latence SMTP (bon SMTP_HOST/port, SMTP_FORCE_IPV4=true) ou augmentez SMTP_HTTP_BUDGET_MS (max ~28s sur Render).",
+        "Le navigateur peut afficher « CORS » ou 502 dans ce cas : ce n’est pas un blocage CORS réel, c’est un timeout côté proxy. Réduisez la latence SMTP (bon SMTP_HOST/port) ou augmentez SMTP_HTTP_BUDGET_MS (max ~28s sur Render). Sur Render, IPv4 SMTP est déjà favorisé par défaut.",
     };
   }
 
@@ -408,7 +437,7 @@ function smtpErrorToClientPayload(err) {
       error: "Impossible de joindre le serveur SMTP (réseau ou pare-feu).",
       smtpErrorCode: "SMTP_UNREACHABLE",
       smtpHint:
-        "Sur Render : vérifiez SMTP_HOST et SMTP_PORT (587 puis 465, le serveur réessaie l’autre port). Si ça persiste, ajoutez SMTP_FORCE_IPV4=true dans les variables d’environnement (contourne des timeouts IPv6). Gmail : mot de passe d’application + SMTP_USER = l’adresse Gmail complète.",
+        "Sur Render : vérifiez SMTP_HOST et SMTP_PORT (587 puis 465, le serveur réessaie l’autre port). IPv4 pour le SMTP est activé par défaut sur Render (variable RENDER) ; pour forcer ailleurs : SMTP_FORCE_IPV4=true ; pour désactiver sur Render : SMTP_FORCE_IPV4=false. Gmail : mot de passe d’application + SMTP_USER = l’adresse Gmail complète.",
     };
   }
 
@@ -417,7 +446,7 @@ function smtpErrorToClientPayload(err) {
       error: "Connexion au serveur mail interrompue. Réessayez.",
       smtpErrorCode: "SMTP_CONNECTION_LOST",
       smtpHint:
-        "Souvent incompatibilité TLS/port ; comparez avec la doc SMTP de votre fournisseur (Hostinger, Gmail, etc.).",
+        "Souvent TLS/port : essayez l’autre port (587 ↔ 465) sur Render. Gmail = smtp.gmail.com + mot de passe d’application. Par défaut le serveur n’impose plus STARTTLS strict sur 587 (évite ESOCKET) ; pour l’ancien comportement : SMTP_REQUIRE_TLS=true. Dépannage certificat auto-signé uniquement si besoin : SMTP_TLS_REJECT_UNAUTHORIZED=false.",
     };
   }
 
@@ -475,7 +504,7 @@ async function sendResetLinkByEmail(recipientEmail, resetUrl) {
     smtpPassConfigured: Boolean(SMTP_PASS),
     recipientMasked: recipientEmail.replace(/^(.{2}).+(@.+)$/, "$1***$2"),
     resetUrlLength: resetUrl.length,
-    smtpForceIpv4: String(process.env.SMTP_FORCE_IPV4 || "").toLowerCase() === "true",
+    smtpForceIpv4: smtpForceIpv4LookupEnabled(),
   });
   const payload = {
     from: SMTP_FROM,
