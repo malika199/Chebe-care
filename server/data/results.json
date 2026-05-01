@@ -13,10 +13,10 @@
     "id": 2,
     "image": "/images/temoignages/temoignage-2.png",
     "hairType": "Crépus",
-    "duration": "3 mois",
-    "months": 3,
+    "duration": "13 mois",
+    "months": 13,
     "result": "Cheveux plus épais",
-    "detail": "Volume et force en 3 mois"
+    "detail": "Volume et force en 13 mois"
   },
   {
     "id": 3,
@@ -53,6 +53,16 @@
     "months": 3,
     "result": "Cheveux longs et soyeux",
     "detail": "Brillance et texture visible",
+    "objectPosition": "center"
+  },
+  {
+    "id": 7,
+    "image": "/images/temoignages/logo-removebg-preview-1777581211165.png",
+    "hairType": "Cheveux",
+    "duration": "10 mois",
+    "months": 10,
+    "result": "cheveux soyeux",
+    "detail": "",
     "objectPosition": "center"
   }
 ]

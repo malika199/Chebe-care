@@ -5,8 +5,8 @@
     "description": "Huile nourrissante enrichie en Chebé et Huile de Cerise pour une barbe plus douce et brillante. Hair & beard.",
     "usage": "Pour utiliser l'huile de Chebé sur les cheveux et la barbe, appliquez-la en bain d'huile, ou quotidiennement en quelques gouttes pour sceller l'hydratation (deux fois par jour), ou en traitement profond (mélangée à un masque, parfois la nuit) en massant le cuir chevelu et la barbe pour stimuler la pousse, puis rincez ou coiffez selon le type de soin.",
     "price": 10,
-    "originalPrice": null,
-    "discount": 0,
+    "originalPrice": 9,
+    "discount": 9,
     "image": "/images/products/huile-barbe.png",
     "category": "Barbe",
     "features": [
@@ -14,7 +14,10 @@
       "Réduit les démangeaisons",
       "Apporte brillance",
       "Texture légère non grasse"
-    ]
+    ],
+    "bienfaits": null,
+    "pourQui": null,
+    "isMostPopular": true
   },
   {
     "id": 2,
@@ -145,18 +148,15 @@
   },
   {
     "id": 8,
-    "name": "hilighter",
-    "description": "produit pour make up ",
+    "name": "l'huile",
+    "description": "xxxxxxxxx",
     "usage": null,
-    "price": 10,
-    "originalPrice": 13,
+    "price": 0.24,
+    "originalPrice": null,
     "discount": 0,
-    "image": "/images/products/aceembelif-woman-5803008_1920-1772547178558.jpg",
-    "category": "Barbe",
-    "features": [
-      "xxxxxxxxxxxxxxxxxxxxxxx.",
-      "xxxxxxxxxxxxxxxxxxxxxxx."
-    ],
+    "image": "/images/products/photocv_Q-1777581443371.jpeg",
+    "category": "Cheveux",
+    "features": [],
     "tagline": null,
     "bienfaits": null,
     "pourQui": null

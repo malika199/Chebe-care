@@ -62,7 +62,7 @@ const ProductCard = ({ product, featured = false, muted = false, compact = false
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-[#E8DAD1]/60 shrink-0">
+          <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-[#E8DAD1]/60 shrink-0">
             <span className="font-serif text-sm sm:text-base font-semibold text-[#3A2F2A] truncate min-w-0">
               {showDiscount ? (
                 <>

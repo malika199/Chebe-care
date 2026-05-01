@@ -14,12 +14,13 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "data");
+const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, "data"));
 const DATA_FILE = path.join(DATA_DIR, "products.json");
 const RESULTS_FILE = path.join(DATA_DIR, "results.json");
 const ADMIN_FILE = path.join(DATA_DIR, "admin.json");
-const PUBLIC_DIR = path.join(__dirname, "public");
-const IMAGES_DIR = path.join(PUBLIC_DIR, "images");
+const IMAGES_DIR = path.resolve(
+  process.env.IMAGES_DIR || path.join(__dirname, "public", "images"),
+);
 const IMAGES_PRODUCTS_DIR = path.join(IMAGES_DIR, "products");
 const IMAGES_TEMOIGNAGES_DIR = path.join(IMAGES_DIR, "temoignages");
 const PORT = process.env.PORT || 3001;
@@ -577,9 +578,8 @@ function ensureAdminFile() {
     }
     return;
   }
-  if (existing?.email && existing?.passwordHash && ADMIN_FORCE_BOOTSTRAP && existing.mustChangePassword === false) {
-    return;
-  }
+  // ADMIN_FORCE_BOOTSTRAP=true => réinitialise explicitement le compte admin
+  // avec les valeurs par défaut (email + mot de passe temporaire).
   const email = String(existing?.email || ADMIN_EMAIL || "").trim().toLowerCase();
   const tempPassword = String(existing?.password || ADMIN_TEMP_PASSWORD);
   const passwordHash = bcrypt.hashSync(tempPassword, BCRYPT_ROUNDS);
@@ -591,7 +591,9 @@ function ensureAdminFile() {
     resetTokenExpiresAt: null,
   });
   console.log(
-    "[admin] Compte initialisé.",
+    ADMIN_FORCE_BOOTSTRAP
+      ? "[admin] Compte réinitialisé avec le mot de passe temporaire (ADMIN_FORCE_BOOTSTRAP=true)."
+      : "[admin] Compte initialisé.",
   );
 }
 
