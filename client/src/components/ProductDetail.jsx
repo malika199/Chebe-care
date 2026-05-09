@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getProduct, getProductImageUrl } from '../api'
+import { getProduct, getProductImageUrl, getPublicSettings } from '../api'
 import { getDisplayDiscount, hasDiscount } from '../utils/product'
 import { products as fallbackProducts } from '../data/products'
 import LandingNavbar from './LandingNavbar'
@@ -8,12 +8,14 @@ import Footer from './Footer'
 import '../styles/ProductDetail.css'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1556228720-195a112e97e3?w=500&h=500&fit=crop'
+const DEFAULT_WHATSAPP_PHONE = '33758021464'
 
 const ProductDetail = () => {
   const { id } = useParams()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [modeEmploiOpen, setModeEmploiOpen] = useState(false)
+  const [whatsAppPhoneWaMe, setWhatsAppPhoneWaMe] = useState(DEFAULT_WHATSAPP_PHONE)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -26,6 +28,23 @@ const ProductDetail = () => {
         setProduct(fallback || null)
       })
       .finally(() => setLoading(false))
+  }, [id])
+
+  useEffect(() => {
+    let active = true
+    getPublicSettings()
+      .then((settings) => {
+        const phone = String(settings?.whatsappPhoneWaMe || '').replace(/\D/g, '')
+        if (!active) return
+        setWhatsAppPhoneWaMe(phone || DEFAULT_WHATSAPP_PHONE)
+      })
+      .catch(() => {
+        if (!active) return
+        setWhatsAppPhoneWaMe(DEFAULT_WHATSAPP_PHONE)
+      })
+    return () => {
+      active = false
+    }
   }, [id])
 
   if (loading) {
@@ -57,7 +76,7 @@ const ProductDetail = () => {
 
   const showDiscount = hasDiscount(product)
   const discount = getDisplayDiscount(product)
-  const whatsappUrl = `https://wa.me/33605680350?text=${encodeURIComponent(`Bonjour, je souhaite commander : ${product.name}`)}`
+  const whatsappUrl = `https://wa.me/${whatsAppPhoneWaMe}?text=${encodeURIComponent(`Bonjour, je souhaite commander : ${product.name}`)}`
 
   return (
     <div className="min-h-screen bg-[#F5EFEA] flex flex-col">

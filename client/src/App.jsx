@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom'
 import HomePage from './pages/HomePage'
+import TermsOfUsePage from './pages/TermsOfUsePage'
 import ProductDetail from './components/ProductDetail'
 
 const SECTIONS = ['products', 'ingredients', 'about', 'values', 'gallery']
@@ -25,6 +26,7 @@ function App() {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/cgu" element={<TermsOfUsePage />} />
         <Route path="/produit/:id" element={<ProductDetail />} />
         <Route path="/:section" element={<HomeSectionRoute />} />
         <Route path=":section" element={<HomeSectionRoute />} />

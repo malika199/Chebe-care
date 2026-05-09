@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, requestPasswordReset, resetPassword, getProductImageUrl, logoutAdmin, formatForgotPasswordApiError } from '../api'
+import { getProducts, loginAdmin, updateProduct, createProduct, deleteProduct, uploadImage, getResults, createResult, updateResult, deleteResult, requestPasswordReset, resetPassword, getProductImageUrl, logoutAdmin, formatForgotPasswordApiError, getAdminSettings, getAdminMe } from '../api'
 import logo from '../assets/images/logo.png'
 import './AdminPage.css'
 
 const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'
+const DEFAULT_WHATSAPP_PHONE = '+33758021464'
 
 // Chemins /images/… = servis par l’API (getProductImageUrl préfixe l’URL en prod). Autres chemins relatifs = site client.
 function getImageSrc(path) {
@@ -56,6 +57,9 @@ const AdminPage = () => {
   const [forgotNewPassword, setForgotNewPassword] = useState('')
   const [forgotConfirm, setForgotConfirm] = useState('')
   const [forgotError, setForgotError] = useState('')
+  const [settingsWhatsappPhone, setSettingsWhatsappPhone] = useState(DEFAULT_WHATSAPP_PHONE)
+  const [adminEmail, setAdminEmail] = useState('')
+  const [settingsNotice, setSettingsNotice] = useState('')
 
   useEffect(() => {
     document.title = 'CHEBE CARE BY SS — Admin'
@@ -66,6 +70,8 @@ const AdminPage = () => {
 
   useEffect(() => {
     loadProducts()
+    loadAdminSettings()
+    loadAdminIdentity()
   }, [])
 
   useEffect(() => {
@@ -93,6 +99,26 @@ const AdminPage = () => {
       setMessage({ type: 'error', text: 'Impossible de charger les produits. Démarrez le serveur (npm run start dans server/).' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAdminSettings = async () => {
+    try {
+      const data = await getAdminSettings()
+      setSettingsWhatsappPhone(String(data?.whatsappPhone || DEFAULT_WHATSAPP_PHONE))
+      setSettingsNotice('')
+    } catch (e) {
+      setSettingsWhatsappPhone(DEFAULT_WHATSAPP_PHONE)
+      setSettingsNotice('')
+    }
+  }
+
+  const loadAdminIdentity = async () => {
+    try {
+      const me = await getAdminMe()
+      setAdminEmail(String(me?.email || ''))
+    } catch {
+      setAdminEmail('')
     }
   }
 
@@ -450,6 +476,7 @@ const AdminPage = () => {
           <nav className="admin-tabs">
             <button type="button" className={'admin-tab ' + (tab === 'products' ? 'active' : '')} onClick={() => setTab('products')}>Produits</button>
             <button type="button" className={'admin-tab ' + (tab === 'results' ? 'active' : '')} onClick={() => setTab('results')}>Résultats</button>
+            <button type="button" className={'admin-tab ' + (tab === 'settings' ? 'active' : '')} onClick={() => setTab('settings')}>Mes coordonnées</button>
           </nav>
           <div className="admin-header-actions">
             <a href={CLIENT_URL} className="admin-btn admin-btn-ghost">Voir le site</a>
@@ -535,6 +562,25 @@ const AdminPage = () => {
               </div>
             )}
           </>
+        ) : tab === 'settings' ? (
+        <>
+        <section className="admin-form admin-form-add">
+          <h2>Mes coordonnées</h2>
+          {settingsNotice ? (
+            <p className="admin-product-category">{settingsNotice}</p>
+          ) : null}
+          <div className="admin-form-row">
+            <label>
+              <span className="admin-label">Email administrateur</span>
+              <input type="text" value={adminEmail || '—'} readOnly className="admin-input" />
+            </label>
+            <label>
+              <span className="admin-label">Numéro WhatsApp (commande)</span>
+              <input type="text" value={settingsWhatsappPhone || '—'} readOnly className="admin-input" />
+            </label>
+          </div>
+        </section>
+        </>
         ) : (
         <>
         <div className="admin-toolbar">

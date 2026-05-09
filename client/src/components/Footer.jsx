@@ -57,8 +57,11 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 text-center">
-          <p className="text-[10px] uppercase tracking-[0.08em] text-[#E8DAD1]/60">&copy; 2026 CHEBE CARE By SS. Tous droits réservés.</p>
+        <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-center">
+          <Link to="/cgu" className="text-[10px] uppercase tracking-[0.08em] text-[#E8DAD1]/70 hover:text-white transition-colors">
+            Conditions générales d&apos;utilisation
+          </Link>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-[#E8DAD1]/60">&copy; 2021 CHEBE CARE By SS. Tous droits réservés.</p>
         </div>
       </div>
     </footer>

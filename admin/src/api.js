@@ -98,7 +98,17 @@ async function parseApiResponse(res) {
   try {
     return JSON.parse(raw)
   } catch {
-    return { error: raw }
+    const text = String(raw).trim()
+    const cannotRouteMatch = text.match(/Cannot\s+(GET|POST|PUT|DELETE)\s+([^\s<]+)/i)
+    if (cannotRouteMatch) {
+      const method = cannotRouteMatch[1].toUpperCase()
+      const route = cannotRouteMatch[2]
+      return { error: `Route API indisponible (${method} ${route}).` }
+    }
+    if (/<\/?[a-z][\s\S]*>/i.test(text)) {
+      return { error: 'Réponse serveur invalide (HTML au lieu de JSON).' }
+    }
+    return { error: text }
   }
 }
 
@@ -308,4 +318,55 @@ export async function deleteResult(id, token) {
     throw new Error(err.error || 'Erreur suppression')
   }
   return res.json()
+}
+
+export async function getAdminSettings() {
+  const base = getApiBase()
+  const adminRes = await apiFetch(`${base}/api/admin/settings`)
+  const adminData = await parseApiResponse(adminRes)
+  if (adminRes.ok) return adminData
+
+  const isRouteUnavailable =
+    adminRes.status === 404 ||
+    adminRes.status === 405 ||
+    String(adminData?.error || '').toLowerCase().includes('route api indisponible')
+  if (!isRouteUnavailable) {
+    throw new Error(adminData.error || 'Erreur chargement paramètres')
+  }
+
+  // Fallback lecture: permet d'afficher le numéro actuel côté admin
+  // même si les routes admin/settings ne sont pas encore déployées.
+  const publicRes = await apiFetch(`${base}/api/public-settings`)
+  const publicData = await parseApiResponse(publicRes)
+  if (!publicRes.ok) throw new Error(adminData.error || publicData.error || 'Erreur chargement paramètres')
+  return {
+    ok: true,
+    whatsappPhone: publicData?.whatsappPhone || '',
+    source: 'public-fallback'
+  }
+}
+
+export async function updateAdminSettings(payload) {
+  const base = getApiBase()
+  const first = await apiFetch(`${base}/api/admin/settings`, {
+    method: 'PUT',
+    headers: withJsonHeaders(),
+    body: JSON.stringify(payload || {})
+  })
+  const firstData = await parseApiResponse(first)
+  if (first.ok) return firstData
+
+  // Fallback: certains déploiements/proxys refusent PUT mais acceptent POST.
+  const maybeMethodNotAllowed = first.status === 404 || first.status === 405
+  if (!maybeMethodNotAllowed) {
+    throw new Error(firstData.error || 'Erreur mise à jour paramètres')
+  }
+  const second = await apiFetch(`${base}/api/admin/settings`, {
+    method: 'POST',
+    headers: withJsonHeaders(),
+    body: JSON.stringify(payload || {})
+  })
+  const secondData = await parseApiResponse(second)
+  if (!second.ok) throw new Error(secondData.error || firstData.error || 'Erreur mise à jour paramètres')
+  return secondData
 }

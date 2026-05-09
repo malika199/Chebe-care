@@ -128,6 +128,15 @@ export async function getResults() {
   return res.json()
 }
 
+export async function getPublicSettings() {
+  const base = getApiBase()
+  const sep = `${base}/api/public-settings`.includes('?') ? '&' : '?'
+  const url = `${base}/api/public-settings${sep}t=${Date.now()}`
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) throw new Error('Erreur chargement paramètres publics')
+  return res.json()
+}
+
 export async function loginAdmin(password) {
   const base = getApiBase()
   const res = await fetch(`${base}/api/admin/login`, {

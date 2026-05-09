@@ -68,6 +68,7 @@ const ADMIN_RESET_TTL_MS = 15 * 60 * 1000;
 const ADMIN_JWT_TTL = "12h";
 const BCRYPT_ROUNDS = 12;
 const ADMIN_FORCE_BOOTSTRAP = String(process.env.ADMIN_FORCE_BOOTSTRAP || "").toLowerCase() === "true";
+const DEFAULT_WHATSAPP_PHONE = String(process.env.ADMIN_WHATSAPP_PHONE || "+33758021464").trim();
 
 /** URL publique forcée pour les assets (images) si le proxy envoie un Host incorrect. Sans slash final. */
 function normalizeEnvBaseUrl(u) {
@@ -278,6 +279,29 @@ function readAdminConfig() {
 
 function writeAdminConfig(config) {
   fs.writeFileSync(ADMIN_FILE, JSON.stringify(config, null, 2), "utf-8");
+}
+
+function normalizeWhatsAppPhone(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const normalized = raw.replace(/[^\d+]/g, "");
+  const plusCount = (normalized.match(/\+/g) || []).length;
+  const hasInvalidPlus = plusCount > 1 || (plusCount === 1 && !normalized.startsWith("+"));
+  if (hasInvalidPlus) return null;
+  let digits = normalized.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  // Confort FR: si format local 0XXXXXXXXX, on le convertit en 33XXXXXXXXX pour wa.me
+  if (digits.length === 10 && digits.startsWith("0")) {
+    digits = `33${digits.slice(1)}`;
+  }
+  if (digits.length < 6 || digits.length > 20) return null;
+  return normalized.startsWith("+") ? `+${digits}` : digits;
+}
+
+function toWaMePhone(value) {
+  const normalized = normalizeWhatsAppPhone(value);
+  if (!normalized) return "";
+  return String(normalized).replace(/\D/g, "");
 }
 
 function hashResetToken(token) {
@@ -573,8 +597,13 @@ const loginRateLimiter = rateLimit({
 function ensureAdminFile() {
   const existing = readAdminConfig();
   if (existing?.email && existing?.passwordHash && !ADMIN_FORCE_BOOTSTRAP) {
-    if (existing.mustChangePassword !== false) {
-      writeAdminConfig({ ...existing, mustChangePassword: false });
+    const nextWhatsapp = normalizeWhatsAppPhone(DEFAULT_WHATSAPP_PHONE) || "33758021464";
+    if (existing.mustChangePassword !== false || existing.whatsappPhone !== nextWhatsapp) {
+      writeAdminConfig({
+        ...existing,
+        mustChangePassword: false,
+        whatsappPhone: nextWhatsapp,
+      });
     }
     return;
   }
@@ -589,6 +618,7 @@ function ensureAdminFile() {
     mustChangePassword: false,
     resetTokenHash: null,
     resetTokenExpiresAt: null,
+    whatsappPhone: normalizeWhatsAppPhone(DEFAULT_WHATSAPP_PHONE) || "33758021464",
   });
   console.log(
     ADMIN_FORCE_BOOTSTRAP
@@ -679,6 +709,60 @@ app.get("/api/admin/me", adminAuth, (req, res) => {
     mustChangePassword: Boolean(config?.mustChangePassword),
   });
 });
+
+app.get("/api/public-settings", (req, res) => {
+  const config = readAdminConfig();
+  const normalized =
+    normalizeWhatsAppPhone(config?.whatsappPhone) ||
+    normalizeWhatsAppPhone(DEFAULT_WHATSAPP_PHONE) ||
+    "33758021464";
+  res.json({
+    whatsappPhone: normalized,
+    whatsappPhoneWaMe: toWaMePhone(normalized),
+  });
+});
+
+app.get("/api/admin/settings", adminAuth, (req, res) => {
+  const config = readAdminConfig();
+  if (!config) return res.status(500).json({ error: "Configuration admin introuvable" });
+  const normalized =
+    normalizeWhatsAppPhone(config.whatsappPhone) ||
+    normalizeWhatsAppPhone(DEFAULT_WHATSAPP_PHONE) ||
+    "33758021464";
+  if (config.whatsappPhone !== normalized) {
+    writeAdminConfig({ ...config, whatsappPhone: normalized });
+  }
+  res.json({ ok: true, whatsappPhone: normalized });
+});
+
+function updateAdminSettingsHandler(req, res) {
+  try {
+    const config = readAdminConfig();
+    if (!config) return res.status(500).json({ error: "Configuration admin introuvable" });
+    const raw = req.body?.whatsappPhone;
+    const normalized = normalizeWhatsAppPhone(raw);
+    if (normalized === null) {
+      return res.status(400).json({
+        error:
+          "Numéro WhatsApp invalide. Exemple attendu : +33612345678 ou 33612345678.",
+      });
+    }
+    const finalValue =
+      normalized || normalizeWhatsAppPhone(DEFAULT_WHATSAPP_PHONE) || "33758021464";
+    const next = { ...config, whatsappPhone: finalValue };
+    writeAdminConfig(next);
+    res.json({
+      ok: true,
+      whatsappPhone: finalValue,
+      whatsappPhoneWaMe: toWaMePhone(finalValue),
+    });
+  } catch (e) {
+    res.status(500).json({ error: "Erreur lors de la mise à jour des paramètres admin" });
+  }
+}
+
+app.put("/api/admin/settings", adminAuth, updateAdminSettingsHandler);
+app.post("/api/admin/settings", adminAuth, updateAdminSettingsHandler);
 
 app.post("/api/admin/change-password", adminAuth, async (req, res) => {
   try {
